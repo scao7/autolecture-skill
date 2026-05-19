@@ -1,4 +1,4 @@
-# autolecture-claude-skill
+# autolecture-skill
 
 Claude Code skill that turns a script / audio recording / podcast
 (optionally + a PDF or GitHub repo) into a finished
@@ -15,7 +15,7 @@ compile, download the mp4.
 # old folder first to avoid two copies loading:
 rm -rf ~/.claude/skills/autolecture-demo
 
-git clone https://github.com/scao7/autolecture-claude-skill.git ~/.claude/skills/autolecture-skill
+git clone https://github.com/scao7/autolecture-skill.git ~/.claude/skills/autolecture-skill
 ```
 
 ### 2. Install the SDK (always required)
