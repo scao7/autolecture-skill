@@ -369,6 +369,7 @@ python3 scripts/upload_and_compile.py <work>
 - [`reference/palette.md`](reference/palette.md) — 视觉调色板
 - [`reference/engine-routing.md`](reference/engine-routing.md) — 引擎选择决策树
 - [`reference/figure-matching.md`](reference/figure-matching.md) — PDF / repo 图素材的 anchor 匹配规则
+- [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 个可借鉴的动效模板(无限滚动 / 旋转盘 / 爆炸组装 / 聚光灯 / 打字机 / 程序波动),写新 scene 前先翻一下。归纳自 vibe-motion/skills,只学技法,不抄代码
 - [`templates/`](templates/) — Remotion / HTML / Manim 骨架 + scene_image_zoom Ken Burns 模板
 - [`scripts/transcribe.py`](scripts/transcribe.py) — Whisper 词级转录
 - [`scripts/find_beats.py`](scripts/find_beats.py) — anchor-phrase 定位时间戳
