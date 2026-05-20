@@ -35,7 +35,22 @@ description: 用户给一段口播音频 / 已录好的播客 / 或纯文字脚�
 - 用户只给文字 → **text**
 - 含糊不清 → AskUserQuestion 让用户在 rough / polished 中选
 
-## 可选配套素材：PDF / GitHub repo / 本地图片
+## PDF 有两种流程 — 先判断再动手
+
+用户给 PDF（通常是论文），**先分清诉求**（详见 [`reference/pdf-showcase.md`](reference/pdf-showcase.md)）：
+
+| 流程 | 用户想要 | 怎么做 |
+|---|---|---|
+| **A · 讲解知识**（默认）| "把这篇论文讲明白" | LLM 读 PDF → 口播脚本 → 抽 figure 配画面（下方"配套素材"流程）|
+| **B · 展示 PDF** | "在视频里**展示**这份 PDF，翻页 / 放大 / 高亮某句话" | `react-pdf` 直接渲染真页 + zoom + 文字高亮，用 [`scene_pdf_highlight`](templates/scene_pdf_highlight.tsx.tpl) / [`scene_pdf_focus`](templates/scene_pdf_focus.tsx.tpl) 模板 |
+
+判定："讲解/科普" → A；"展示原件 / 翻页 / 放大原文 / 高亮这句话 / 像翻杂志" → B；含糊就问一句。两者可混用（A 为主，插 B 的原文高亮镜头）。
+
+**Flow B 要点**：PDF 当项目 asset 上传，scene 里 `staticFile('paper.pdf')`，**不跑** `extract_pdf_figures.py`。高亮**不要硬编码坐标** — 把旁白这一拍引用的短语填进模板的 `TARGET`，模板用 pdfjs text layer 自动定位 bbox + 把 zoom 推到那句话。需要 AutoLecture bundle 里的 react-pdf（已内置）。
+
+下面的"配套素材"流程是 **Flow A** 用的（抽 figure 当素材，最终画面是重新设计的 scene，PDF 原件不出镜）。
+
+## 配套素材（Flow A）：PDF figure / GitHub repo / 本地图片
 
 主输入是音频/文字（始终需要）。**配套素材是 opt-in 增量**：用户给了 → 自动 match → 出现在画面上；没给 → 跳过这一步，按基础 mode 出 demo。
 
@@ -370,7 +385,10 @@ python3 scripts/upload_and_compile.py <work>
 - [`reference/engine-routing.md`](reference/engine-routing.md) — 引擎选择决策树
 - [`reference/figure-matching.md`](reference/figure-matching.md) — PDF / repo 图素材的 anchor 匹配规则
 - [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 个可借鉴的动效模板(无限滚动 / 旋转盘 / 爆炸组装 / 聚光灯 / 打字机 / 程序波动),写新 scene 前先翻一下。归纳自 vibe-motion/skills,只学技法,不抄代码
+- [`reference/pdf-showcase.md`](reference/pdf-showcase.md) — PDF 两种流程(讲解知识 vs 展示原件)+ react-pdf 文字高亮怎么对准
 - [`templates/`](templates/) — Remotion / HTML / Manim 骨架 + scene_image_zoom Ken Burns 模板
+- [`templates/scene_pdf_highlight.tsx.tpl`](templates/scene_pdf_highlight.tsx.tpl) — Flow B:渲染 PDF 真页 + zoom + 旁白驱动文字高亮(react-pdf)
+- [`templates/scene_pdf_focus.tsx.tpl`](templates/scene_pdf_focus.tsx.tpl) — Flow B:PDF 真页聚焦/滚动到某区域(react-pdf)
 - [`scripts/transcribe.py`](scripts/transcribe.py) — Whisper 词级转录
 - [`scripts/find_beats.py`](scripts/find_beats.py) — anchor-phrase 定位时间戳
 - [`scripts/extract_pdf_figures.py`](scripts/extract_pdf_figures.py) — PDF 页 + 图抽取（pdftoppm + pdfplumber）
