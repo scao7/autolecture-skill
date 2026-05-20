@@ -1,6 +1,6 @@
 ---
 name: autolecture-skill
-description: 用户给一段口播音频 / 已录好的播客 / 或纯文字脚本（可选附加 PDF 论文 / GitHub repo），端到端生成一个 AutoLecture (https://autolecture.ai) 项目并用 `autolecture` SDK 直接上传 + 编译 + 下载 mp4。所有视觉用 \\manimFile / \\htmlFile / \\remotionFile 手写源码（**不走 LLM 提示词**），AI 仅用于 \\image[engine=gemini]{} 生图。PDF 图表 / repo 截图按音频内容 match 到对应 view（含 zoom-in / crop / annotate 效果，全部 HTML 或 Remotion 实现）。目标：用户提供素材 → 跑完 → out.mp4 + Studio URL。
+description: 用户给一段口播音频 / 已录好的播客 / 或纯文字脚本（可选附加 PDF 论文 / GitHub repo），端到端生成一个可在 AutoLecture (https://autolecture.ai) 编译出片的项目。交付两条路径任选：打包 zip 让用户自己上传网站改代码，或用 `autolecture` Python SDK 一键上传 + 编译 + 下载 mp4。所有视觉用 \\manimFile / \\htmlFile / \\remotionFile 手写源码（**不走 LLM 提示词**），AI 仅用于 \\image[engine=gemini]{} 生图。PDF 可「讲解知识」(抽 figure) 或「展示原件」(react-pdf 真页 + zoom + 文字高亮)。目标：用户提供素材 → 跑完 → out.mp4 + Studio URL。
 ---
 
 # autolecture-skill
@@ -319,25 +319,36 @@ python3 scripts/clone_github_assets.py --repo <url-or-path> --out <work>/figures
 每个 view 一个独立场景源码，遵循一致的调色板（#0d1117 / #6ec1e4 / #f4d35e / #ee6c4d / #aab1c0）和字体栈（Inter + PingFang SC）。
 ```
 
-### 步骤 9 · (可选)打包 zip 给用户
+### 步骤 9 · 交付 — 两种路径,让用户选
 
-> 这步可以跳过 — 走步骤 10 用 SDK 直接上传更顺。仅当用户明确要"我自己手动上传/留个本地备份"时才打包。
+工作目录做好后,有**两条平等的交付路径**。先问用户(或按线索判断)要哪条:
+
+| 路径 | 适合 | 怎么交付 |
+|---|---|---|
+| **A · zip 上传**(步骤 9A)| 用户想**自己在网站上改代码** / 偏好网页操作 / agent 没有网络或 API key(如大陆用 Codex)| `package_zip.py` 打个 zip → 用户拖到 <https://autolecture.ai> 上传 → 在 Studio 里自己编辑 + 编译 |
+| **B · API 直传**(步骤 9B)| 用户想让 **AI 实时改代码**(在 Claude/Codex 里继续迭代)| `upload_and_compile.py` 走 SDK,一键上传 + 编译 + 下载 mp4 |
+
+判定:用户说"给我个 zip 我自己传 / 我想在网站改" → A;"你直接帮我传上去 / 边跑边调" → B;含糊就**两个都给**(先打 zip,再问要不要顺便 API 直传)。两条路径**都**经 AutoLecture 编译收费(skill 代码免费,任何入口的编译都收费)。
+
+#### 步骤 9A · 打包 zip(用户自己上传)
 
 ```bash
 python3 scripts/package_zip.py --work <work> --out <work>/autolecture_demo.zip
 ```
 
 [`scripts/package_zip.py`](scripts/package_zip.py) 会:
-- 把 `<work>` 全部内容打到一个 zip
-- 校验关键文件都在(每个 `\manimFile` / `\htmlFile` / `\remotionFile` 引用的源码都存在)
+- 把 `<work>` 全部内容打到一个 zip(`main.tex` + `scenes/` + 素材)
+- 校验关键文件都在(每个 `\manimFile` / `\htmlFile` / `\remotionFile` / `\imageFile` / `\audio` 引用的文件都存在),缺了就 hard-exit
 - 输出 zip 路径 + 文件清单
 
-### 步骤 10 · 用 SDK 一键上传 + 编译 + 下载 mp4(默认路径)
+回复用户:zip 路径 + "拖到 autolecture.ai 上传,会自动识别 main.tex、把素材注册好;之后在 Studio 里改代码 / 点 Recompile"。(网站 from-zip 已验证:自动加 `\begin{videotex}` 外壳、注册 assets、`staticFile()` 能拿到上传的 PDF/图。)
 
-不再让用户手动拖 zip 到网页。前提:
+#### 步骤 9B · SDK 一键上传 + 编译 + 下载 mp4
+
+前提:
 
 1. 已经 `pip install autolecture`(SDK 仓库:<https://github.com/scao7/autolecture-python>)
-2. 已经在 <https://autolecture.ai/account> 生成 API key,并 `export AUTOLECTURE_API_KEY=al_live_...`
+2. 已经在 <https://autolecture.ai/account> → 🔑 API Keys 生成 key,并 `export AUTOLECTURE_API_KEY=al_live_...`
 
 执行:
 
@@ -393,8 +404,8 @@ python3 scripts/upload_and_compile.py <work>
 - [`scripts/find_beats.py`](scripts/find_beats.py) — anchor-phrase 定位时间戳
 - [`scripts/extract_pdf_figures.py`](scripts/extract_pdf_figures.py) — PDF 页 + 图抽取（pdftoppm + pdfplumber）
 - [`scripts/clone_github_assets.py`](scripts/clone_github_assets.py) — repo 图片 sparse-clone + manifest
-- [`scripts/package_zip.py`](scripts/package_zip.py) — 校验 + 打包成可下发的 zip(可选,Step 10 直接走 SDK 上传时不需要)
-- [`scripts/upload_and_compile.py`](scripts/upload_and_compile.py) — 用 `autolecture` SDK 一键上传+编译+下载 mp4
+- [`scripts/package_zip.py`](scripts/package_zip.py) — 路径 A:校验 + 打包成 zip,用户自己上传到网站改代码
+- [`scripts/upload_and_compile.py`](scripts/upload_and_compile.py) — 路径 B:用 `autolecture` SDK 一键上传+编译+下载 mp4(AI 实时迭代)
 - AutoLecture 主项目:<https://github.com/scao7/autolecture>
 - AutoLecture Python SDK:<https://github.com/scao7/autolecture-python>
 - VideoTeX 在线文档:<https://autolecture.ai/docs/dsl>
