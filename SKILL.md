@@ -80,6 +80,21 @@ description: 用户给一段口播音频 / 已录好的播客 / 或纯文字脚�
 
 模板：[`templates/scene_image_zoom.tsx.tpl`](templates/scene_image_zoom.tsx.tpl) 是 Ken Burns 默认骨架；剩下的按需手写。
 
+## 实拍结合（footage + 动效叠加）
+
+用户给一段**真实拍摄的视频**（口播、操作录屏、产品镜头），想在上面加动效字幕 / 下三分图 / 箭头标注 → 用 Remotion 的 `over=` opt。后端把 scene **透明渲染**（alpha），再 ffmpeg 合成到实拍片段**上面**；实拍是主轴，它的时长决定这一镜的长度。
+
+```latex
+\begin{view}
+  \remotionFile[over=clip.mp4]{scene_overlay.tsx}   % clip.mp4 在 assets/
+  \say{这一拍的旁白……}                              % 与实拍原声「叠加」播放，不替换
+\end{view}
+```
+
+- **音频是叠加模式**：实拍原声 + `\say` 旁白 + `\bgm` 一起 mix（不是替换）。调音量：`over_volume=0.4`（压低实拍原声给旁白让路）、`\say[volume=1.2]`、`\bgm[volume=0.3]`。
+- **模板** [`templates/scene_overlay.tsx.tpl`](templates/scene_overlay.tsx.tpl)。两条铁律：① 根 `AbsoluteFill` **绝不能设不透明 backgroundColor**（否则盖住实拍）；② 只给图形元素本身上背景。
+- 实拍片段当普通 asset 上传到 `assets/`；`over=` 的值是相对 `assets/` 的路径。
+
 ## HARD BANS
 
 1. **禁止用 LLM 提示词宏**：`\manim{prompt}` / `\html{prompt}` / `\remotion{prompt}` / `\show{}` 一律不准。所有视觉必须是 `\manimFile{path.py}` / `\htmlFile{path.html}` / `\remotionFile{path.tsx}` / `\imageFile{path.png}` / `\image[engine=gemini]{prompt}`（AI 生图允许）。
@@ -400,6 +415,7 @@ python3 scripts/upload_and_compile.py <work>
 - [`templates/`](templates/) — Remotion / HTML / Manim 骨架 + scene_image_zoom Ken Burns 模板
 - [`templates/scene_pdf_highlight.tsx.tpl`](templates/scene_pdf_highlight.tsx.tpl) — Flow B:渲染 PDF 真页 + zoom + 旁白驱动文字高亮(react-pdf)
 - [`templates/scene_pdf_focus.tsx.tpl`](templates/scene_pdf_focus.tsx.tpl) — Flow B:PDF 真页聚焦/滚动到某区域(react-pdf)
+- [`templates/scene_overlay.tsx.tpl`](templates/scene_overlay.tsx.tpl) — 实拍结合:透明动效叠加到实拍视频(`\remotionFile[over=clip.mp4]{...}`,音频叠加)
 - [`scripts/transcribe.py`](scripts/transcribe.py) — Whisper 词级转录
 - [`scripts/find_beats.py`](scripts/find_beats.py) — anchor-phrase 定位时间戳
 - [`scripts/extract_pdf_figures.py`](scripts/extract_pdf_figures.py) — PDF 页 + 图抽取（pdftoppm + pdfplumber）
