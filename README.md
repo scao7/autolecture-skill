@@ -1,11 +1,17 @@
 # autolecture-skill
 
-Claude Code skill that turns a script, audio recording, or podcast
-(optionally + a PDF or GitHub repo) into a finished
-[AutoLecture](https://autolecture.ai) video. Claude generates the
-scenes, uploads them via the
-[autolecture](https://github.com/scao7/autolecture-python) Python SDK,
-compiles on the server, and saves the mp4 next to your input.
+Claude Code skill that turns your material into a finished
+[AutoLecture](https://autolecture.ai) video. The entry point asks what
+kind of video you want, then routes to the matching workflow:
+
+- **plain text / topic** → generated narration + hand-written visuals
+- **audio recording / podcast** → transcribe → match visuals (rough re-synth or keep your voice)
+- **PDF paper** → *explain it* (extract figures) or *show it* (render the real pages with react-pdf, zoom + locate + highlight — technique borrowed from [pdf2video](https://github.com/DangJin/pdf2video))
+- **real footage** → overlay transparent motion graphics on top (`over=`)
+
+Claude generates the scenes, then either packages a zip you upload, or
+uploads + compiles + downloads the mp4 via the
+[autolecture](https://github.com/scao7/autolecture-python) Python SDK.
 
 ## Install
 
@@ -46,21 +52,28 @@ optionally attaching an input file:
 >
 > "做个 autolecture demo" `--include recording.mp3`
 >
-> "Turn this paper into an explainer video." `--include paper.pdf`
+> "Show this paper in the video — flip pages, zoom, highlight." `--include paper.pdf`
+>
+> "Overlay lower-thirds and callouts on my footage." `--include clip.mp4`
 
-Claude reads [`SKILL.md`](SKILL.md), picks a mode (text / rough audio
-/ polished audio), and runs the 10-step pipeline:
+Claude reads [`SKILL.md`](SKILL.md) — a **router** — figures out which
+input you have (asking if unclear), then opens the matching playbook in
+[`workflows/`](workflows/) and follows it:
 
-1. Pick mode + extract / transcribe the script
-2. Plan beats (one beat ≈ one view)
-3. Hand-write a `\manimFile` / `\htmlFile` / `\remotionFile` source
-   per scene — **no LLM-codegen render macros**, the skill bans
-   those (see SKILL.md HARD BANS)
-4. Optionally match PDF figures or repo screenshots to specific
-   beats with anchor-sentence evidence
-5. Run [`scripts/upload_and_compile.py`](scripts/upload_and_compile.py)
-   — creates a project, uploads the assets, PUTs the tex, polls the
-   compile job block-by-block, downloads the mp4
+| Input | Workflow |
+|---|---|
+| plain text / topic | [`workflows/text-to-lecture.md`](workflows/text-to-lecture.md) |
+| audio / podcast | [`workflows/audio-upload.md`](workflows/audio-upload.md) |
+| PDF paper | [`workflows/pdf-paper.md`](workflows/pdf-paper.md) |
+| real footage | [`workflows/video.md`](workflows/video.md) |
+
+Every workflow hand-writes a `\manimFile` / `\htmlFile` /
+`\remotionFile` source per scene (**no LLM-codegen render macros** — the
+skill bans those; see SKILL.md HARD BANS), then converges on the shared
+delivery step [`workflows/_delivery.md`](workflows/_delivery.md): package
+a zip, or run [`scripts/upload_and_compile.py`](scripts/upload_and_compile.py)
+to create a project, upload assets, PUT the tex, poll the compile job
+block-by-block, and download the mp4.
 
 Typical session ends like:
 

@@ -30,11 +30,20 @@
 - PDF 作为**项目 asset 上传**（和音频/图一样）。scene 里 `staticFile('paper.pdf')` 就能拿到（AutoLecture 编译时把项目 assets/ 挂成 bundle 的 public/）。
 - 不需要跑 `extract_pdf_figures.py`——react-pdf 直接读原 PDF。
 
-### 模板
-| 模板 | 效果 | 关键参数 |
-|---|---|---|
-| [`scene_pdf_highlight.tsx.tpl`](../templates/scene_pdf_highlight.tsx.tpl) | 显示某页 + zoom 推近 + **高亮旁白正在讲的那句话** | `TARGET`（旁白引用的短语）、`ZOOM_END` |
-| [`scene_pdf_focus.tsx.tpl`](../templates/scene_pdf_focus.tsx.tpl) | 显示某页 + 聚焦/滚动到某区域（无高亮框）| `FOCUS_PHRASE` 或 `FOCUS_FX/FY`、`SCROLL` |
+### 镜头语言（4 种 scene，借鉴 pdf2video）
+按「旁白这一拍在做什么」选 scene。一个 view = 一个 scene = 一拍旁白：
+
+| 模板 | 旁白动作 | 效果 | 关键参数 |
+|---|---|---|---|
+| [`scene_pdf_overview.tsx.tpl`](../templates/scene_pdf_overview.tsx.tpl) | "这篇论文我们快速过一遍" | 几页**扇形铺开**（fan/stack）当开场建立镜 | `PAGES=[1,2,3,4]`、`SPREAD` |
+| [`scene_pdf_switch.tsx.tpl`](../templates/scene_pdf_switch.tsx.tpl) | "讲完方法,**翻到**实验那页" | 页 A **滑动/淡出**到页 B | `PAGE_FROM/PAGE_TO`、`DIR`、`TURN_AT` |
+| [`scene_pdf_focus.tsx.tpl`](../templates/scene_pdf_focus.tsx.tpl) | "我们看**这一块**" | 显示某页 + 聚焦/滚动到某区域（无高亮框）| `FOCUS_PHRASE` 或 `FOCUS_FX/FY`、`SCROLL` |
+| [`scene_pdf_highlight.tsx.tpl`](../templates/scene_pdf_highlight.tsx.tpl) | "重点是**这句话**" | 显示某页 + zoom 推近 + **高亮旁白正在讲的那句话** | `TARGET`（旁白引用的短语）、`ZOOM_END` |
+
+典型编排：`overview`（开场建立）→ `switch`（翻到目标页）→ `focus`（推到目标区域）→ `highlight`（钉死关键句）。不必每种都用，按旁白需要挑。
+
+### 字体 / CJK：cMap 配置
+论文常含 CJK / 数学 / subset 字体；pdfjs 需要 cMap 才能正确渲染，否则字变空白。`scene_pdf_switch` / `scene_pdf_overview` 已带 `PDF_OPTS = { cMapUrl, cMapPacked }`；写新 PDF scene 时给 `<Document options={PDF_OPTS}>` 一律带上。
 
 ### 高亮怎么对准（核心）
 **不要硬编码坐标。** 模板用 pdfjs 的 text layer 自动定位：

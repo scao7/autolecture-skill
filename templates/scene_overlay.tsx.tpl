@@ -17,13 +17,20 @@
 // Levels: \remotionFile[over=clip.mp4, over_volume=0.4]{...} ducks the
 // footage; \say[volume=1.2]{...} lifts the narration.
 //
-// ── TWO HARD RULES FOR OVERLAYS ──────────────────────────────────────
+// ── THREE HARD RULES FOR OVERLAYS ────────────────────────────────────
 // 1. NEVER set an opaque backgroundColor on the root AbsoluteFill. The
 //    background MUST stay transparent or it hides the footage. Only the
 //    graphic ELEMENTS get backgrounds. (This is the #1 overlay mistake.)
 // 2. Keep WIDTH/HEIGHT at the footage's resolution. The compiler also
 //    forces --width/--height to the project \aspect{}, so just match the
 //    footage aspect ratio here (16:9 default below).
+// 3. FROSTED-GLASS look: panels are TRANSLUCENT glass (low-alpha fill +
+//    light border + top sheen) so the footage reads through them. With
+//    `over=`, the footage is a LIVE <OffthreadVideo> behind this scene in
+//    ONE Remotion render (not an ffmpeg post-composite), so normal CSS
+//    over real video works — `backdrop-filter: blur()` on a panel would
+//    even blur the footage behind it if you wanted. We DON'T need blur:
+//    translucency (alpha 0.30–0.50) alone sells the glass.
 //
 // AUDIO-FIRST TIMING (same as every scene): express animation timings as
 // fractions of `dur` (live duration), never hardcoded frames — the
@@ -43,7 +50,9 @@ export const DURATION_FRAMES = 10 * FPS;
 const C = {
   fg: '#ffffff',
   accent: '#6ec1e4',
-  card: 'rgba(20, 24, 33, 0.82)',   // semi-opaque so text stays legible over busy footage
+  glass: 'rgba(18, 22, 31, 0.42)',         // frosted-glass fill — translucent so footage reads through
+  glassBorder: 'rgba(255, 255, 255, 0.16)', // light hairline = the "glass edge"
+  sheen: 'linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0) 38%)',
   bar: '#ee6c4d',
 };
 
@@ -82,11 +91,20 @@ export const Comp: React.FC = () => {
         }}
       >
         <div style={{ width: 8, background: C.bar }} />
-        <div style={{ background: C.card, color: C.fg, padding: '16px 26px' }}>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.5 }}>
+        {/* Frosted-glass panel: translucent fill + hairline border + top
+            sheen. backgroundImage paints the sheen over the glass fill. */}
+        <div style={{
+          background: C.glass,
+          backgroundImage: C.sheen,
+          border: `1px solid ${C.glassBorder}`,
+          borderLeft: 'none',
+          color: C.fg,
+          padding: '16px 26px',
+        }}>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.5, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
             主标题 <span style={{ color: C.accent }}>关键词</span>
           </div>
-          <div style={{ fontSize: 17, color: '#aab1c0', marginTop: 4 }}>
+          <div style={{ fontSize: 17, color: '#cdd4de', marginTop: 4, textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>
             副标题 / 说明文字
           </div>
         </div>
