@@ -25,27 +25,28 @@ python3 scripts/transcribe.py --audio <clip.mp4> --out <work>/clip.mp4.whisper.j
 
 | 模式 | 用户想要 | 怎么排 |
 |---|---|---|
-| **A · 叠加（overlay）** | "在我这段视频**上面**加字幕条 / 数据卡 / 箭头" | 每镜 `\remotionFile[over=clip.mp4]{}`，**半透明毛玻璃**动效叠在实拍上 |
+| **A · 叠加（overlay）** | "在我这段视频**上面**加字幕条 / 数据卡 / 箭头" | 每镜 `\video{clip}` + `\remotionFile[over=true]{}`，**半透明毛玻璃**动效叠在实拍上 |
 | **B · 剪辑结合（intercut）** | "把我的口播和讲解画面**剪在一起**" | 音频为主轴：该露脸时放 talking-head，该讲概念时切到我们写的素材 scene |
 
 ---
 
 ## 模式 A · 叠加特效（frosted-glass overlay）
 
-实拍是主轴，动效**透明渲染**后由后端 ffmpeg 合成到实拍**上面**；实拍时长决定这一镜长度。
+同一个 view 里放两层视觉：**实拍底**（`\video`，自带原声 = 脊柱）+ **透明动效覆盖层**（`\remotionFile[over=true]`）。Remotion 把动效渲成**透明 alpha 素材**，由 **manifest 叠**在实拍上 —— 引擎只产素材，叠加编排全在 VideoTeX/manifest（预览即导出）。
 
 ```latex
 \begin{view}
-  \remotionFile[over=clip.mp4, over_volume=1.0]{scenes/overlay_lower_third.tsx}
-  % 可选：另配旁白叠加（不替换原声）
+  \video[start=0, end=8.5]{clip.mp4}                  % 实拍底 + 自带原声 = 脊柱
+  \remotionFile[over=true]{scenes/overlay_01.tsx}      % 透明动效覆盖层
+  % 可选：额外叠加配音/背景乐（音频叠加,不替换原声）
   % \say[volume=1.2]{补充说明……}
 \end{view}
 ```
 
 - 模板 [`../templates/scene_overlay.tsx.tpl`](../templates/scene_overlay.tsx.tpl)。**半透明毛玻璃**：面板用低透明度填充（alpha 0.30–0.50）+ 浅色描边 + 顶部 sheen，让实拍透过来。
-- **机制**：`over=` 把实拍当作**这一镜 Remotion 合成里的实时 `<OffthreadVideo>` 背景**，scene 在它上面画透明动效 —— 一次渲染，不是 ffmpeg 后合成。所以普通 CSS 叠在真实视频上都有效，连 `backdrop-filter: blur()` 都能真的模糊背后的实拍（如果想要）。**这里不需要 blur** —— 半透明面板本身就够「毛玻璃」质感了。
-- 两条铁律：① 根 `AbsoluteFill` 绝不设不透明 `backgroundColor`（否则盖住实拍）；② 只给图形元素本身上背景。
-- 音频叠加：原声 + `\say` + `\bgm` 一起 mix（`over_volume=` / `\say[volume=]` / `\bgm[volume=]` 调比例）。
+- **机制**：`over=true` 只是个**渲染提示** —— 让 Remotion 渲成透明 webm（alpha）。**引擎完全不碰实拍**；把 alpha 叠到 `\video` 上是 manifest 的事。这一镜时长由 `\video`（自带音频）决定（audio-first）；想去原声用 `\video[mute=on]`。
+- 两条铁律：① 覆盖层根 `AbsoluteFill` 绝不设不透明 `backgroundColor`（否则盖住实拍）；② 只给图形元素本身上背景。
+- 音频叠加：实拍原声 + `\say` + `\bgm` 一起 mix（用各自 `volume=` 调比例）。`over=true` 对 `\remotion` 和 `\remotionFile` 都有效。
 
 ## 模式 B · 剪辑结合（intercut，音频驱动）
 

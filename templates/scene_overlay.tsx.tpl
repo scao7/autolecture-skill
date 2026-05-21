@@ -2,35 +2,36 @@
 // (~<EST_DURATION>s, but the FOOTAGE drives actual length — see below)
 //
 // Use this when the user wants animated graphics ON TOP OF real video
-// footage (lower-thirds, callouts, arrows, labels, score bugs). Wire it
-// in main.tex with the `over=` opt:
+// footage (lower-thirds, callouts, arrows, labels, score bugs). Put the
+// footage as a `\video` BASE layer and this scene as an `over=true` overlay
+// in the SAME view:
 //
 //   \begin{view}
-//     \remotionFile[over=clip.mp4]{scene_overlay.tsx}   % clip.mp4 in assets/
-//     \say{你的旁白……}                                  % MIXED on top of footage audio
+//     \video[start=0, end=8.5]{clip.mp4}            % footage base + its audio = spine
+//     \remotionFile[over=true]{scene_overlay.tsx}   % this transparent overlay
 //   \end{view}
 //
-// The backend alpha-renders this scene (transparent background), then
-// composites it OVER assets/clip.mp4. The footage is the SPINE: its
-// duration sets the clip length and this overlay is rendered to match.
-// Footage audio + your \say narration are MIXED additively (not replaced).
-// Levels: \remotionFile[over=clip.mp4, over_volume=0.4]{...} ducks the
-// footage; \say[volume=1.2]{...} lifts the narration.
+// `over=true` is a RENDER HINT: the backend renders THIS scene to a
+// transparent alpha webm and the MANIFEST stacks it over the \video base —
+// the engine never touches the footage. The footage is the SPINE: the
+// \video clip's duration (audio-first on its own audio) sets the view
+// length. Add a \say / \bgm to layer extra audio (mixed additively;
+// balance with \say[volume=] / \bgm[volume=]). `\video[mute=on]` drops the
+// footage's own audio.
 //
 // ── THREE HARD RULES FOR OVERLAYS ────────────────────────────────────
 // 1. NEVER set an opaque backgroundColor on the root AbsoluteFill. The
-//    background MUST stay transparent or it hides the footage. Only the
-//    graphic ELEMENTS get backgrounds. (This is the #1 overlay mistake.)
+//    background MUST stay transparent or the alpha webm hides the footage.
+//    Only the graphic ELEMENTS get backgrounds. (#1 overlay mistake.)
 // 2. Keep WIDTH/HEIGHT at the footage's resolution. The compiler also
 //    forces --width/--height to the project \aspect{}, so just match the
 //    footage aspect ratio here (16:9 default below).
 // 3. FROSTED-GLASS look: panels are TRANSLUCENT glass (low-alpha fill +
-//    light border + top sheen) so the footage reads through them. With
-//    `over=`, the footage is a LIVE <OffthreadVideo> behind this scene in
-//    ONE Remotion render (not an ffmpeg post-composite), so normal CSS
-//    over real video works — `backdrop-filter: blur()` on a panel would
-//    even blur the footage behind it if you wanted. We DON'T need blur:
-//    translucency (alpha 0.30–0.50) alone sells the glass.
+//    light border + top sheen) so the footage reads through them. The
+//    overlay is rendered standalone to a transparent webm (the footage is
+//    NOT in this render — the manifest composites them), so
+//    `backdrop-filter: blur()` has nothing to blur here; don't rely on it.
+//    Translucency (alpha 0.30–0.50) is what sells the glass.
 //
 // AUDIO-FIRST TIMING (same as every scene): express animation timings as
 // fractions of `dur` (live duration), never hardcoded frames — the
