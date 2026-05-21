@@ -59,6 +59,12 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 8. **图素材 match 必须有锚句证据**：每张图标到哪个 view，要在 `beat_plan.md` 写明 transcript 里触发匹配的原句（防凭感觉塞图）。
 9. **禁止默认抽 PDF 整页栅格**：`extract_pdf_figures.py` 默认 figures-only；只有显式做「文字 highlight / 公式 zoom / 整页 scroll」才用 `--with-pages`。
 10. **音频时长驱动视觉**：绝不反向假设视觉时长决定 scene 时长。三引擎 audio-first 写法见 [`reference/audio-first.md`](reference/audio-first.md) —— 写任何 scene 前必读。
+11. **禁止预剪 / 预拼素材 —— 剪辑全用 .tex 表达**：**绝不**在外面用 ffmpeg / 剪辑软件把原始素材切片、拼接、重排、变速、加转场后再丢进项目。素材**原片整个**作 asset，所有剪辑都用 VideoTeX 声明：
+    - **选段 / 切镜** → `\video[start=, end=]{原片.mp4}` / `\audio[start=, end=]{原片.mp4}`（编译器从原片取那个时间窗,原片不动）。
+    - **排序 / 拼接** → view 的先后顺序（manifest 按序 concat）。
+    - **转场** → `\fade` / view 边界，不要把转场烧进素材。
+
+    理由：P1 **LaTeX 是唯一真相**、P2 **没有 GUI 漂移** —— 剪辑是 .tex 里**可改、可预览、非破坏性**的字符（预览即导出）。预剪素材 = 把剪辑决策烧死在文件里、绕过 .tex，违反整套架构。（唯一例外:原片实在过大时可先粗剪到一个工作区间当 asset,但**精剪仍写在 .tex 里**。）
 
 ---
 
