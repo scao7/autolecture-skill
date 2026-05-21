@@ -1,6 +1,6 @@
 ---
 name: autolecture-skill
-description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=)。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。交付两条路径：打包 zip 让用户上传, 或用 autolecture Python SDK 一键上传+编译+下载 mp4。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
+description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。交付两条路径：打包 zip 让用户上传, 或用 autolecture Python SDK 一键上传+编译+下载 mp4。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
 ---
 
 # autolecture-skill
@@ -34,7 +34,7 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 | 只有**文字 / 一句指令 / 选题**，无录音 | [`workflows/text-to-lecture.md`](workflows/text-to-lecture.md) | **先写口播稿给用户定稿** → TTS → 按口播配画面 |
 | 一段**录音 / 播客**（mp3/wav/m4a） | [`workflows/audio-upload.md`](workflows/audio-upload.md) | 转录 + 修错字 → 保留原声直接剪 或 voice clone 重合成 |
 | 一份 **PDF 论文** | [`workflows/pdf-paper.md`](workflows/pdf-paper.md) | A 讲解知识(抽 figure) 或 B 展示原件(真页 + zoom + 定位高亮) |
-| 一段**实拍视频** | [`workflows/video.md`](workflows/video.md) | 不做 TTS,用原音频切分 → 叠加特效(毛玻璃) 或 剪辑结合 |
+| 一段**实拍视频** / **录屏 + 头像** | [`workflows/video.md`](workflows/video.md) | 不做 TTS,用原音频切分 → 叠加特效(毛玻璃) / 剪辑结合 / Tella 录屏画中画 |
 
 要问就用 AskUserQuestion，选项就是上面四类：「① 我给文字 / 选题 ② 我录了音频 / 播客 ③ 我有 PDF 论文 ④ 我有实拍视频」。
 
@@ -112,6 +112,7 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 - [`templates/scene_remotion.tsx.tpl`](templates/scene_remotion.tsx.tpl) · [`templates/scene_html.html.tpl`](templates/scene_html.html.tpl) · [`templates/scene_manim.py.tpl`](templates/scene_manim.py.tpl)
 - [`templates/scene_image_zoom.tsx.tpl`](templates/scene_image_zoom.tsx.tpl) — figure Ken Burns
 - [`templates/scene_overlay.tsx.tpl`](templates/scene_overlay.tsx.tpl) — 实拍结合透明叠加
+- [`templates/scene_screencast_pip.tsx.tpl`](templates/scene_screencast_pip.tsx.tpl) — Tella 录屏 + 头像全屏↔小窗 morph
 - PDF 真页镜头（Flow B）：[`scene_pdf_overview`](templates/scene_pdf_overview.tsx.tpl) · [`scene_pdf_switch`](templates/scene_pdf_switch.tsx.tpl) · [`scene_pdf_focus`](templates/scene_pdf_focus.tsx.tpl) · [`scene_pdf_highlight`](templates/scene_pdf_highlight.tsx.tpl)
 
 ### scripts/

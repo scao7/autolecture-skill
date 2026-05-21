@@ -27,6 +27,7 @@ python3 scripts/transcribe.py --audio <clip.mp4> --out <work>/clip.mp4.whisper.j
 |---|---|---|
 | **A · 叠加（overlay）** | "在我这段视频**上面**加字幕条 / 数据卡 / 箭头" | 每镜 `\video{clip}` + `\remotionFile[over=true]{}`，**半透明毛玻璃**动效叠在实拍上 |
 | **B · 剪辑结合（intercut）** | "把我的口播和讲解画面**剪在一起**" | 音频为主轴：该露脸时放 talking-head，该讲概念时切到我们写的素材 scene |
+| **C · Tella 录屏 + 画中画** | 有**两段素材**（录屏 + 头像），要那种"头像从全屏缩进角落、录屏接管"的丝滑切 | 一个 view 里一个 `\remotionFile{}` scene 同时载入两段，`interpolate` 做全屏↔小窗 morph |
 
 ---
 
@@ -67,6 +68,28 @@ python3 scripts/transcribe.py --audio <clip.mp4> --out <work>/clip.mp4.whisper.j
   ```
 - 两种镜交替排满整条音频时间轴，`start/end` 首尾相接（不留缝、不重叠）。素材镜的画面 audio-first（跟 `\audio` 时长，见 [`../reference/audio-first.md`](../reference/audio-first.md)）。
 - 选引擎 / 手写 scene 同 [`text-to-lecture.md`](text-to-lecture.md) 步骤 3–4，统一调色板 [`../reference/palette.md`](../reference/palette.md)。
+
+## 模式 C · Tella 录屏 + 头像画中画（全屏↔小窗 morph）
+
+用户有**两段素材**（一段录屏 + 一段对着摄像头的口播），想要那种很丝滑的
+Tella 效果：开场头像铺满全屏自我介绍，然后**缩进角落变成小窗**、录屏接管画面。
+
+关键认知：**这个「缩小」是一镜之内的 morph，必须放在同一个 `view` 里**。一个
+`\remotionFile{}` scene 同时载入两段视频，用 `interpolate` 把头像的 scale /
+位置 / 圆角随时间插值。这**不是** `over=` 叠加（叠加层是独立透明渲染、引擎碰不到
+实拍）—— 这一镜里 scene 自己把两段合成。manifest 只在 **view 边界**做切 / 淡，
+所以跨两个 view 做不出这种 morph。
+
+```latex
+\begin{view}
+  \remotionFile{scenes/screencast_01.tsx}   % 同时载入 screen.mp4 + webcam.mp4
+  \audio{webcam.mp4}                          % 人声 = 脊柱 + 决定这一镜时长
+\end{view}
+```
+
+- 模板 [`../templates/scene_screencast_pip.tsx.tpl`](../templates/scene_screencast_pip.tsx.tpl)。两段都 `staticFile()` 直接载入、scene 里都 `muted`（scene 只出画面、不带音频）。
+- **音频**：人声来自 `\audio{webcam.mp4}`（同一头像文件当音轨脊柱）；它也定这一镜时长，编译器据此覆盖 `DURATION_FRAMES`，所以模板里用 `dur` 的分数表达的 morph 时间点会自动对齐。录屏自带系统音（点击声 / demo 声）也想要的话，再加一条 `\audio[...]{screen.mp4}`（叠加 mix，不替换）。
+- 模板参数：`PIP_SCALE`（小窗占比 0.22–0.30）、`PIP_CORNER`（br/bl/tr/tl）、`MORPH_START/END`（0..1，缩小动作发生在片段的哪一段）。要反向（结尾再放大回全屏脸）/ 加标题条 / 录屏 punch-in 放大，模板里搜 `VARIANT` 注释。
 
 ---
 
