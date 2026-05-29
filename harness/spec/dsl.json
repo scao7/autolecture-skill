@@ -1,58 +1,333 @@
 {
-  "_comment": "Snapshot of AutoLecture's VideoTeX syntax surface — generated from backend/lecturetex/spec.py 2026-05-29. Regenerate via scripts/regen_dsl_spec.py when the backend evolves. The harness reads this to know which macros + opts are valid (vs which the skill bans on top of valid).",
+  "_comment": "Generated from backend/lecturetex/spec.py by scripts/regen_dsl_spec.py. DO NOT HAND-EDIT — re-run the script after changing the backend spec. CI checks for drift.",
   "_source": "backend/lecturetex/spec.py",
-  "_snapshot_date": "2026-05-29",
   "_aspect_note": "\\aspect{} body grammar accepts either a bare RATIO (defaults to 720p short side) or 'RATIO, RES' to pick the compile-time resolution. RES tokens map to short-side pixels: 720p=720, 1080p=1080, 1440p=1440, 2k=1440, 4k=2160. Every view block renders natively at that canvas — export is just file serving, no scaling.",
-
   "document_env": "videotex",
-
   "toplevel_macros": {
-    "title":     { "opts": [] },
-    "aspect":    { "opts": [], "body_grammar": "RATIO | RATIO ',' RES", "body_values_ratio": ["16:9", "9:16", "1:1", "4:3", "3:4", "4:5", "21:9"], "body_values_res": ["720p", "1080p", "1440p", "2k", "4k"], "body_examples": ["16:9", "9:16", "16:9, 1080p", "9:16, 4k", "1:1, 1080p"], "body_default_res": "720p" },
-    "style":     { "opts": [] },
-    "voice":     { "opts": [] },
-    "subtitle":  { "opts": [], "body_values": ["on", "off", "auto"] },
-    "bgm":       { "opts": ["volume", "loop", "fade", "lead"] },
-    "character": { "opts": ["voice", "speaker", "speed", "model"] }
+    "title": {
+      "opts": []
+    },
+    "aspect": {
+      "opts": [],
+      "body_grammar": "RATIO | RATIO ',' RES",
+      "body_values_ratio": [
+        "16:9",
+        "9:16",
+        "1:1",
+        "4:3",
+        "3:4",
+        "4:5",
+        "21:9"
+      ],
+      "body_values_res": [
+        "720p",
+        "1080p",
+        "1440p",
+        "2k",
+        "4k"
+      ],
+      "body_examples": [
+        "16:9",
+        "9:16",
+        "16:9, 1080p",
+        "9:16, 4k",
+        "1:1, 1080p"
+      ],
+      "body_default_res": "720p"
+    },
+    "style": {
+      "opts": []
+    },
+    "voice": {
+      "opts": []
+    },
+    "subtitle": {
+      "opts": [],
+      "body_values": [
+        "on",
+        "off",
+        "auto"
+      ]
+    },
+    "bgm": {
+      "opts": [
+        "fade",
+        "lead",
+        "loop",
+        "volume"
+      ]
+    },
+    "character": {
+      "opts": [
+        "model",
+        "speaker",
+        "speed",
+        "voice"
+      ]
+    }
   },
-
   "transition_macros": {
-    "fade": { "opts": ["duration", "color"] }
+    "fade": {
+      "opts": [
+        "color",
+        "duration"
+      ]
+    }
   },
-
   "layer_macros": {
-    "image":        { "slot": "visual",    "opts": ["fit", "position", "bg", "lead", "engine", "model", "aspect"] },
-    "imageFile":    { "slot": "visual",    "opts": ["fit", "position", "bg", "lead", "engine", "model", "aspect"] },
-    "video":        { "slot": "visual",    "opts": ["start", "end", "mute", "loop", "fit", "position", "bg", "lead"] },
-    "manim":        { "slot": "visual",    "opts": ["model", "duration", "lead", "engine", "over", "retime"], "kind": "llm_prompt" },
-    "manimFile":    { "slot": "visual",    "opts": ["model", "duration", "lead", "engine", "over", "retime"], "kind": "file_path" },
-    "html":         { "slot": "visual",    "opts": ["model", "duration", "title", "lead", "engine", "over"], "kind": "llm_prompt" },
-    "htmlFile":     { "slot": "visual",    "opts": ["model", "duration", "title", "lead", "engine", "over"], "kind": "file_path" },
-    "remotion":     { "slot": "visual",    "opts": ["model", "duration", "lead", "over"], "kind": "llm_prompt" },
-    "remotionFile": { "slot": "visual",    "opts": ["model", "duration", "lead", "over"], "kind": "file_path" },
-    "wan":          { "slot": "visual",    "opts": ["first_image", "last_image", "ref_image", "model", "duration", "aspect", "mute", "lead", "start", "end"], "paid": true },
-    "seedance":     { "slot": "visual",    "opts": ["first_image", "last_image", "ref_image", "model", "duration", "aspect", "mute", "lead", "start", "end"], "paid": true },
-    "ltx":          { "slot": "visual",    "opts": ["first_image", "last_image", "ref_image", "middle_image", "model", "duration", "aspect", "mute", "lead"], "paid": true },
-    "show":         { "slot": "visual",    "opts": ["model", "duration", "engine", "lead"], "kind": "router" },
-    "audio":        { "slot": "audio",     "opts": ["start", "end", "lead", "volume"] },
-    "bgm":          { "slot": "audio",     "opts": ["volume", "loop", "fade", "lead"] },
-    "say":          { "slot": "narration", "opts": ["voice", "speaker", "speed", "model", "lead", "burn", "as", "volume"] },
-    "caption":      { "slot": "subtitle",  "opts": ["position", "align"] }
+    "image": {
+      "slot": "visual",
+      "opts": [
+        "aspect",
+        "bg",
+        "engine",
+        "fit",
+        "lead",
+        "model",
+        "position"
+      ]
+    },
+    "imageFile": {
+      "slot": "visual",
+      "opts": [
+        "aspect",
+        "bg",
+        "engine",
+        "fit",
+        "lead",
+        "model",
+        "position"
+      ]
+    },
+    "video": {
+      "slot": "visual",
+      "opts": [
+        "bg",
+        "end",
+        "fit",
+        "lead",
+        "loop",
+        "mute",
+        "position",
+        "start"
+      ]
+    },
+    "manim": {
+      "slot": "visual",
+      "opts": [
+        "duration",
+        "engine",
+        "lead",
+        "model",
+        "over",
+        "retime"
+      ],
+      "kind": "llm_prompt"
+    },
+    "html": {
+      "slot": "visual",
+      "opts": [
+        "duration",
+        "engine",
+        "lead",
+        "model",
+        "over",
+        "title"
+      ],
+      "kind": "llm_prompt"
+    },
+    "remotion": {
+      "slot": "visual",
+      "opts": [
+        "duration",
+        "lead",
+        "model",
+        "over"
+      ],
+      "kind": "llm_prompt"
+    },
+    "wan": {
+      "slot": "visual",
+      "opts": [
+        "aspect",
+        "duration",
+        "end",
+        "first_image",
+        "last_image",
+        "lead",
+        "model",
+        "mute",
+        "ref_image",
+        "start"
+      ],
+      "paid": true
+    },
+    "seedance": {
+      "slot": "visual",
+      "opts": [
+        "aspect",
+        "duration",
+        "end",
+        "first_image",
+        "last_image",
+        "lead",
+        "model",
+        "mute",
+        "ref_image",
+        "start"
+      ],
+      "paid": true
+    },
+    "ltx": {
+      "slot": "visual",
+      "opts": [
+        "aspect",
+        "duration",
+        "first_image",
+        "last_image",
+        "lead",
+        "middle_image",
+        "model",
+        "mute",
+        "ref_image"
+      ],
+      "paid": true
+    },
+    "show": {
+      "slot": "visual",
+      "opts": [
+        "duration",
+        "engine",
+        "lead",
+        "model"
+      ],
+      "kind": "router"
+    },
+    "manimFile": {
+      "slot": "visual",
+      "opts": [
+        "duration",
+        "engine",
+        "lead",
+        "model",
+        "over",
+        "retime"
+      ],
+      "kind": "file_path"
+    },
+    "htmlFile": {
+      "slot": "visual",
+      "opts": [
+        "duration",
+        "engine",
+        "lead",
+        "model",
+        "over",
+        "title"
+      ],
+      "kind": "file_path"
+    },
+    "remotionFile": {
+      "slot": "visual",
+      "opts": [
+        "duration",
+        "lead",
+        "model",
+        "over"
+      ],
+      "kind": "file_path"
+    },
+    "audio": {
+      "slot": "audio",
+      "opts": [
+        "end",
+        "lead",
+        "start",
+        "volume"
+      ]
+    },
+    "bgm": {
+      "slot": "audio",
+      "opts": [
+        "fade",
+        "lead",
+        "loop",
+        "volume"
+      ]
+    },
+    "say": {
+      "slot": "narration",
+      "opts": [
+        "as",
+        "burn",
+        "lead",
+        "model",
+        "mute",
+        "speaker",
+        "speed",
+        "voice",
+        "volume"
+      ]
+    },
+    "caption": {
+      "slot": "subtitle",
+      "opts": [
+        "align",
+        "position"
+      ]
+    }
   },
-
   "retired_macros": {
-    "text": { "retired_date": "2026-05-21", "replacement": "caption" }
+    "text": {
+      "retired_date": "2026-05-21",
+      "replacement": "\\caption{...} (pure subtitle) or \\say[burn=on]{...} (burnt narration)"
+    },
+    "keep": {
+      "retired_date": "ADR-009",
+      "replacement": "split into multiple \\begin{view}[start=, end=] blocks"
+    },
+    "visual": {
+      "retired_date": "ADR-009",
+      "replacement": "use the concrete visual macro (\\manim/\\html/\\remotion/...)"
+    }
   },
-
   "deprecated_opts": {
-    "_comment": "Opts still parsed by the backend for back-compat but the skill MUST NOT generate them. mirrors backend spec.py DEPRECATED_OPTS (added 2026-05-29).",
-    "say": { "mute": { "deprecated": "2026-05-22", "replacement": "\\caption{...} (pure subtitle, no TTS)" } }
+    "_comment": "Opts still parsed by the backend for back-compat but the skill MUST NOT generate them. Mirrors spec.py DEPRECATED_OPTS — re-run scripts/regen_dsl_spec.py to sync.",
+    "say": {
+      "mute": {
+        "deprecated": "2026-05-22",
+        "replacement": "\\caption{...}  (pure subtitle, no TTS)"
+      }
+    },
+    "html": {
+      "title": {
+        "deprecated": "2026-04 (ADR-013 v3.8)",
+        "replacement": "remove — cache uses content_hash now; title= is a no-op"
+      }
+    }
   },
-
-  "paid_engines": ["wan", "seedance", "ltx"],
-
-  "caption_position_values": ["top", "bottom", "hidden"],
-  "caption_align_values": ["auto", "on", "off"],
-  "say_burn_values": ["on", "off"],
-  "fade_color_values": ["black", "white", "any-hex"]
+  "paid_engines": [
+    "wan",
+    "seedance",
+    "ltx"
+  ],
+  "caption_position_values": [
+    "top",
+    "bottom",
+    "hidden"
+  ],
+  "caption_align_values": [
+    "auto",
+    "on",
+    "off"
+  ],
+  "say_burn_values": [
+    "on",
+    "off"
+  ],
+  "fade_color_values": [
+    "black",
+    "white",
+    "any-hex"
+  ]
 }
