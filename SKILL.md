@@ -72,7 +72,9 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 - **audio-first timing**（三引擎写法）→ [`reference/audio-first.md`](reference/audio-first.md)
 - **引擎选择决策树**（哪种内容用 Manim / HTML / Remotion / `\image`）→ [`reference/engine-routing.md`](reference/engine-routing.md)
-- **视觉调色板 + 字体栈**（全片一致）→ [`reference/palette.md`](reference/palette.md)
+- **视觉调色板 + 字体栈**（全片一致）— 两套**二选一**,一个项目内只用一套:
+  - [`reference/palette.md`](reference/palette.md) · **editorial dark**（深底 + 海洋蓝）,默认。适合个人 vlog / 论文讲解 / 内容是主角的 editorial 叙事。
+  - [`reference/brand-style.md`](reference/brand-style.md) · **AutoLecture brand**（cream + navy + tan 渐变,跟 [autolecture.ai](https://autolecture.ai) 网站 / Studio / watermark 同一调子）。挂 AutoLecture 招牌时用——官方 demo / teaser / 教程 / 上首页 showcase / 给内测用户的功能片。
 - **VideoTeX 语法速查** → [`reference/dsl-cheatsheet.md`](reference/dsl-cheatsheet.md)（在线文档 <https://autolecture.ai/docs/dsl>）
 - **配套素材 anchor 匹配**（PDF figure / repo 截图 / 本地图）→ [`reference/figure-matching.md`](reference/figure-matching.md)
 - **可借鉴动效技法**（写新 scene 前翻一下）→ [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md)
@@ -106,7 +108,8 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 ### reference/
 - [`reference/audio-first.md`](reference/audio-first.md) — 三引擎 audio-first 写法（铁律）
 - [`reference/engine-routing.md`](reference/engine-routing.md) — 引擎选择决策树
-- [`reference/palette.md`](reference/palette.md) — 调色板（#0d1117 / #6ec1e4 / #f4d35e / #ee6c4d / #aab1c0）
+- [`reference/palette.md`](reference/palette.md) — editorial dark 调色板（#0d1117 / #6ec1e4 / #f4d35e / #ee6c4d / #aab1c0）
+- [`reference/brand-style.md`](reference/brand-style.md) — AutoLecture brand-light 调色板（cream #fefcf6 / navy #234976 / tan #d9b47b 渐变,镜像 styles.css）
 - [`reference/dsl-cheatsheet.md`](reference/dsl-cheatsheet.md) — VideoTeX 语法速查
 - [`reference/figure-matching.md`](reference/figure-matching.md) — 配套素材 anchor 匹配
 - [`reference/pdf-showcase.md`](reference/pdf-showcase.md) — PDF 两种流程 + 4 种 react-pdf 镜头
@@ -117,7 +120,8 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 - [`templates/main.tex.tpl`](templates/main.tex.tpl) · [`templates/README.md.tpl`](templates/README.md.tpl)
 - [`templates/scene_remotion.tsx.tpl`](templates/scene_remotion.tsx.tpl) · [`templates/scene_html.html.tpl`](templates/scene_html.html.tpl) · [`templates/scene_manim.py.tpl`](templates/scene_manim.py.tpl)
 - [`templates/scene_image_zoom.tsx.tpl`](templates/scene_image_zoom.tsx.tpl) — figure Ken Burns
-- [`templates/scene_overlay.tsx.tpl`](templates/scene_overlay.tsx.tpl) — 实拍结合透明叠加
+- [`templates/scene_overlay.tsx.tpl`](templates/scene_overlay.tsx.tpl) — 实拍结合透明叠加(editorial dark · 黑玻璃)
+- [`templates/scene_brand_lower_third.tsx.tpl`](templates/scene_brand_lower_third.tsx.tpl) — 实拍结合透明叠加(AutoLecture brand · paper 玻璃 + navy→tan 渐变)
 - [`templates/scene_screencast_pip.tsx.tpl`](templates/scene_screencast_pip.tsx.tpl) — Tella 录屏 + 头像全屏↔小窗 morph
 - PDF 真页镜头（Flow B）：[`scene_pdf_overview`](templates/scene_pdf_overview.tsx.tpl) · [`scene_pdf_switch`](templates/scene_pdf_switch.tsx.tpl) · [`scene_pdf_focus`](templates/scene_pdf_focus.tsx.tpl) · [`scene_pdf_highlight`](templates/scene_pdf_highlight.tsx.tpl)
 

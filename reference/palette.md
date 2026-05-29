@@ -1,4 +1,8 @@
-# 视觉调色板 + 字体（autolecture-skill 默认）
+# 视觉调色板 + 字体 · editorial dark(autolecture-skill 默认)
+
+> 这是**默认**的 editorial dark 调色板,适合**内容是主角**的 vlog / 论文讲解 / 个人叙事——深底、克制、冷调。
+>
+> 如果项目要**挂 AutoLecture 招牌**(官方 demo / teaser / 教程 / 上首页 showcase),改用 [`brand-style.md`](brand-style.md) ——浅 cream + navy + tan 渐变,与 [autolecture.ai](https://autolecture.ai) 网站、Studio、watermark 同一调子。**一个项目内只用一套,别混。**
 
 ## 调色板
 
