@@ -90,6 +90,18 @@ precut_filename_patterns:
   - 'trimmed_.*\.mp4$'
   - '.*_clipped\.(mp4|m4a|wav)$'
 
+# ───── L3 layout-manager: HTML render checks (Playwright) ─────
+# Open every \htmlFile{} scene at the project canvas size in headless
+# Chromium, walk all visible elements via getBoundingClientRect(), check
+# overflow + text-overlap. Requires Playwright in comfyui env (the
+# backend already needs it for \htmlFile rendering — no new dep).
+html_render:
+  overflow_px_tolerance: 2     # anti-aliasing slack at canvas edges
+  # text-overlap: when two text-bearing elements at the SAME z_index
+  # overlap by more than this fraction of the smaller bbox, flag.
+  # Layered designs (text on a card → different z_index) are not flagged.
+  text_overlap_pct: 30
+
 # ───── Voice-clone consistency ─────
 # When the authenticated user has a registered voice sample
 # (User.voice_sample_path != NULL), all \say{} macros in the project

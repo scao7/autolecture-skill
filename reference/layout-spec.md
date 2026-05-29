@@ -106,6 +106,41 @@ Filenames matching these patterns trigger the `precut_check` (planned, not yet i
 - `trimmed_*.mp4`
 - `*_clipped.{mp4,m4a,wav}`
 
+## L3 layout checks (render-based) — what they actually catch
+
+Two checks open every `\htmlFile{}` scene in headless Chromium at the project canvas size, compute `getBoundingClientRect()` for every visible element, and flag the things that static text scans can't see:
+
+### `html_overflow_render`
+
+For each element with non-zero size:
+- If `rect.right > canvas_w` → **out at right**
+- If `rect.bottom > canvas_h` → **out at bottom**
+- If `rect.left < 0` or `rect.top < 0` → **out at left/top**
+
+Tolerance: 2px anti-aliasing slack (don't flag 1-pixel edge bleed).
+
+Concrete example finding:
+```
+<div> .over "这一段会超出底部" escapes canvas 720×1280:
+  out at bottom by 152px. Bbox @ (50, 1200) size 632×232.
+```
+
+When writing CSS: every absolute-positioned element's `top + height` must be ≤ canvas_h, and `left + width` must be ≤ canvas_w. Use canvas-fraction-based positioning (`top: 80vh`) or compute from the canvas dimension explicitly.
+
+### `html_text_overlap`
+
+For elements that carry their **own text node** (not just descendant text — wrappers don't trigger):
+- Compute pairwise intersection area
+- If `intersection / smaller_bbox > 30%`, AND elements have the SAME `z-index`, flag
+
+Different z-index → not flagged (that's how a text-on-card layout legitimately works — text on top of a card, both render at the same x,y but layered intentionally).
+
+Same z-index + significant overlap → almost always a layout bug (two absolute elements written at the same coordinates by accident).
+
+### When L3 checks skip
+
+If Playwright isn't installed in either the calling Python or the `comfyui` conda env, both L3 checks emit a single `warn`-level finding per scene saying "render probe unavailable — install with `conda run -n comfyui playwright install chromium`". They don't hard-fail — the rest of the harness still works.
+
 ## How to invoke the harness yourself
 
 ```bash

@@ -111,3 +111,64 @@ def test_add_voice_clone_fixer_idempotent(tmp_path: Path):
     # First pass should edit it. Second pass should be a no-op.
     assert len(first) == 1, f"first pass should edit 1 call, got {first}"
     assert len(second) == 0, f"second pass should be idempotent, got {second}"
+
+
+# ── L3 render-based checks ───────────────────────────────────────
+# These need Playwright in either base or comfyui env. Skip cleanly if
+# absent so the test suite stays green on machines without the backend
+# rendering stack installed.
+
+def _playwright_available() -> bool:
+    """True if the L3 probe can find Playwright (either in-process or via
+    the comfyui subprocess fallback)."""
+    from harness.checks._render_helper import get_bboxes
+    # Minimal probe: render a 100×100 viewport on a tiny file.
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False) as f:
+        f.write("<html><body><div style='width:50px;height:50px'></div></body></html>")
+        p = Path(f.name)
+    try:
+        bboxes = get_bboxes(p, 100, 100)
+        return bboxes is not None
+    finally:
+        p.unlink(missing_ok=True)
+
+
+_HAS_PLAYWRIGHT = _playwright_available()
+
+
+@pytest.mark.skipif(not _HAS_PLAYWRIGHT, reason="Playwright unavailable")
+def test_bad_html_overflow_fires_overflow_check():
+    by_check = _findings_by_check(FIXTURES / "bad_html_overflow")
+    findings = by_check["html_overflow_render"]
+    fails = [f for f in findings if f.severity == "fail"]
+    assert len(fails) >= 2, (
+        f"bad_html_overflow has 2 out-of-canvas divs; expected ≥2 fails. "
+        f"Got: {[f.message for f in findings]}"
+    )
+    edges = {tuple(sorted(e for e, _px in f.meta.get("overflow", [])))
+             for f in fails}
+    assert ("bottom",) in edges or ("right",) in edges or len(edges) >= 1, (
+        f"expected edge labels in findings.meta, got {edges}"
+    )
+
+
+@pytest.mark.skipif(not _HAS_PLAYWRIGHT, reason="Playwright unavailable")
+def test_bad_text_collision_fires_overlap_check():
+    by_check = _findings_by_check(FIXTURES / "bad_text_collision")
+    findings = by_check["html_text_overlap"]
+    fails = [f for f in findings if f.severity == "fail"]
+    assert fails, (
+        f"bad_text_collision should produce ≥1 html_text_overlap FAIL, got "
+        f"{[(f.severity, f.message) for f in findings]}"
+    )
+    # The synthetic fixture overlaps the two divs by ~85% of the smaller bbox.
+    assert any(f.meta.get("overlap_frac", 0) > 0.3 for f in fails)
+
+
+@pytest.mark.skipif(not _HAS_PLAYWRIGHT, reason="Playwright unavailable")
+def test_good_minimal_no_l3_findings():
+    """good_minimal has no \\htmlFile{} — L3 checks should no-op cleanly."""
+    by_check = _findings_by_check(FIXTURES / "good_minimal")
+    assert not by_check["html_overflow_render"]
+    assert not by_check["html_text_overlap"]
