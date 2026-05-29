@@ -11,20 +11,15 @@
 
 ## 步骤
 
-### 0 · 检测运行模式 + 查 voice clone 状态
-```bash
-mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
-```
-- **dynamic** → 可调 SDK 拿用户状态、预估成本、SDK 一条龙交付
-- **static** → 只产 zip 让用户拖 [autolecture.ai](https://autolecture.ai);用户状态用 AskUserQuestion 兜底
+### 0 · 用 SKILL.md 入口已确认的 mode + 定 voice clone 处理
 
-详见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
+> **`$mode` 已在 SKILL.md 入口 ② 定下**,这里不再问。继续以 `$mode` 走。
 
-**voice clone 决策**(text-to-lecture 默认走 TTS,所以这个决定一定要做):
+**voice clone 决策**(text-to-lecture 默认走 TTS,必须做):
 - **DYNAMIC**:`python -c "from autolecture import Client; print(Client().get_voice_sample())"` → 有 sample → plan 写"所有 `\say[voice=mine]`";无 → 默认 speaker。
-- **STATIC**:AskUserQuestion 二选一:① 是,用我的克隆声(全片 `voice=mine`) ② 否 / 不清楚(默认 speaker)。
+- **STATIC**:`AskUserQuestion` 二选一:① 是,用我的克隆声(全片 `voice=mine`) ② 否 / 不清楚(默认 speaker)。
 
-决定写进 `<work>/script.md` 的 plan 备注里。整片所有 `\say` 同一种处理。
+决定写进 `<work>/script.md` 的 plan 备注里。整片所有 `\say` 同一种处理。dynamic/static 每个动作对照见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
 
 ### 1 · 准备工作目录
 ```bash

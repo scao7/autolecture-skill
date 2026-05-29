@@ -7,21 +7,16 @@
 
 ## 步骤
 
-### 0 · 检测运行模式 + 查 voice clone 状态(每条 workflow 起步必跑)
-```bash
-mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
-```
-- **dynamic**(有 OAuth/key)→ 可以调 SDK 看用户状态、预估成本、最后 SDK 一条龙交付
-- **static**(默认)→ 只产 zip 让用户拖 [autolecture.ai](https://autolecture.ai);需要用户状态用 AskUserQuestion / 保守默认
+### 0 · 用 SKILL.md 入口已确认的 mode + 定 voice clone 处理
 
-详见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
+> **`$mode` 已在 SKILL.md 入口 ② 定下**——dynamic 还是 static 这里不再问。继续往下,DYNAMIC / STATIC 分两条路。
 
-**这条 workflow 特别要在这步定 voice clone 用不用**(决定后面 `\say` 写不写 `voice=mine`):
+**voice clone 处理决策**(这条 workflow 特有,决定后面 `\say` 写不写 `voice=mine`):
 
 - **DYNAMIC**:`python -c "from autolecture import Client; print(Client().get_voice_sample())"` → `filename` 字段存在 = 有 sample → plan 写"所有 `\say` 带 `voice=mine`";否则用默认 speaker。
-- **STATIC**:`AskUserQuestion` 三选一:① 是,用我的克隆声(→ 全片 `voice=mine`) ② 否 / 不清楚(→ 默认 speaker) ③ 我要保留原声不做 TTS(→ 走 `\audio[start,end]{}` + `\caption{}` 路径,不用 `\say` TTS)。
+- **STATIC**:`AskUserQuestion` 三选一:① 是,用我的克隆声(全片 `voice=mine`) ② 否 / 不清楚(默认 speaker) ③ 我要保留原声不做 TTS(走 `\audio[start,end]{}` + `\caption{}` 路径,不用 `\say` TTS)。
 
-这步决定写进 `<work>/beat_plan.md` 的 plan,**整片所有 `\say` 用同一种处理,不能 mix**。
+决策写进 `<work>/beat_plan.md`,**整片所有 `\say` 用同一种处理,不能 mix**。每个动作的 dynamic/static fallback 全表见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
 
 ### 1 · 准备 + 转录
 ```bash

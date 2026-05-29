@@ -25,7 +25,9 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 ---
 
-## 入口：先确定走哪个 workflow
+## 入口:**两个连环问**(先一次问到位,workflow 内部不再追问)
+
+### 入口 ① · 主输入是什么类型? → 选 workflow
 
 **第一步永远是搞清楚用户手上有什么主输入**（看用户给的文件 + 说的话；不明确就用 AskUserQuestion 问）。然后**读对应的 workflow 文件**并照它执行：
 
@@ -42,6 +44,43 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 - 音频 / 文字 + PDF figure / GitHub repo / 本地图 → 主 workflow 里按 [`reference/figure-matching.md`](reference/figure-matching.md) match 进画面。
 - 音频 / 文字 + 想在画面里**展示** PDF 原件 → 叠 [`workflows/pdf-paper.md`](workflows/pdf-paper.md) 的 Flow B 镜头。
 - 任意 + 实拍片段 → 那几镜用 [`workflows/video.md`](workflows/video.md) 的 `over=` 叠加 / 剪辑结合。
+
+### 入口 ② · 交付方式? → 确认/升级到 dynamic(**workflow 跑之前必问**)
+
+立刻检测当前模式:
+```bash
+mode=$(python -m scripts.runtime_mode)
+```
+
+| 检测结果 | 怎么做 |
+|---|---|
+| `dynamic`(已登录 / 有 cache) | 简单 confirm 一次:"我看到你已经登录 `<email>`,继续 dynamic 模式 — 我会自动上传编译。OK 吗?" — 用 AskUserQuestion 给两个选项:`继续 dynamic` / `这次只产 zip 不上传`。 |
+| `static`(新用户 / 没登录) | **必问 AskUserQuestion**,三选一: |
+
+**static 模式下必问的题(标准模板):**
+
+```
+"先确认交付方式 — 影响后面整套流程怎么走:
+
+① 登录 AutoLecture,Claude 自动上传 + 编译 + 下载 mp4(推荐)
+   30 秒登录(打开链接点批准)。之后整片做完我直接交一个能播的 mp4 + Studio 链接。
+   Claude 还能:查你 voice clone 状态、上传前预估 ✦、编译挂了自动 rerender。
+
+② 只产 zip 给我,我自己拖到 autolecture.ai 上传
+   不用登录。Claude 不查你账号状态,voice clone / 余额这些事问你。
+   产出 zip 你拖网页编译。
+
+③ 稍后决定(默认按 ② 走,到 delivery 再问一次)"
+```
+
+- 用户选 ① → `bash> autolecture login` 打印 `/connect?code=…` URL 给用户点 → cache 落盘 → re-run `python -m scripts.runtime_mode`(应该返 dynamic)→ workflow 继续以 dynamic 模式跑
+- 用户选 ② / ③ → mode 锁 static,workflow 内部全走 static 路径
+
+**Workflow 内部不再问 mode** —— 已经在入口定好。每个 workflow 的 step 1 直接照 `$mode` 分支。
+
+详细的 dynamic / static 每个动作对照表:[`reference/runtime-modes.md`](reference/runtime-modes.md)。
+
+---
 
 所有 workflow 最后都汇到同一个交付步骤：[`workflows/_delivery.md`](workflows/_delivery.md)。
 

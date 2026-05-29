@@ -16,16 +16,13 @@ PDF 有**两种完全不同的诉求**，先判断再动手（详见 [`../refere
 
 ## 通用步骤
 
-### 0 · 检测运行模式
-```bash
-mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
-```
-- **dynamic** → 可调 SDK 主动查 voice clone 状态、预估编译成本、SDK 一条龙交付
-- **static** → 只产 zip;voice clone 等需用户状态用 `AskUserQuestion`
+### 0 · 用 SKILL.md 入口已确认的 mode
 
-详见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
+> **`$mode` 已在 SKILL.md 入口 ② 定下**。
 
-如果旁白要走 TTS,**voice clone 决策**同 audio-upload / text-to-lecture(动态查 `Client().get_voice_sample()` 或问用户)。如果旁白用用户另给的录音(叠加 audio-upload workflow),则按那条 workflow 的 step 0 处理。
+如果旁白要走 TTS(LLM 写 PDF 讲解稿),**voice clone 决策**同 audio-upload / text-to-lecture——dynamic 查 `Client().get_voice_sample()`,static 用 `AskUserQuestion` 问用户。如果旁白用用户另给的录音(叠加 audio-upload workflow),则按那条 workflow 的 step 0 处理。
+
+详细见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
 
 ### 1 · 准备工作目录
 ```bash
