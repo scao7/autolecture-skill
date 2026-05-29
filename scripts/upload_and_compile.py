@@ -130,33 +130,47 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    api_key = os.environ.get("AUTOLECTURE_API_KEY")
-    if not api_key:
-        print(
-            "AUTOLECTURE_API_KEY env var not set. Mint one at "
-            "https://autolecture.ai/account → API Keys → Generate.",
-            file=sys.stderr,
-        )
-        return 1
-
     workdir: Path = args.workdir.resolve()
     if not workdir.is_dir():
         print(f"workdir not found or not a directory: {workdir}", file=sys.stderr)
         return 1
 
+    # SDK presence — use require_pip for the standard "fail-loud + how to
+    # fix" box (matches transcribe.py / extract_pdf_figures.py).
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from _deps import require_pip  # noqa: E402
+    require_pip(
+        "autolecture",
+        note="AutoLecture Python SDK — drives upload + compile + download",
+    )
+    from autolecture import (  # noqa: E402
+        Client,
+        CompileCancelledError,
+        CompileFailedError,
+        DeviceAuthError,
+    )
+
+    # Auth resolution: Client() walks (AUTOLECTURE_API_KEY env → local
+    # cache at ~/.config/autolecture/auth.json) automatically. If neither
+    # is set, drop into the OAuth device flow inline — prints a login
+    # URL the user clicks, then resumes upload + compile with the
+    # freshly-minted key. No more "go mint a key + paste into env"
+    # ceremony for first-time users.
     try:
-        from autolecture import (
-            Client,
-            CompileCancelledError,
-            CompileFailedError,
-        )
-    except ImportError:
+        al = Client(base_url=args.base_url)
+    except ValueError:
         print(
-            "Missing the `autolecture` SDK. Install with:\n"
-            "    pip install autolecture",
+            "[auth] No cached credentials. Starting OAuth device flow…",
             file=sys.stderr,
         )
-        return 1
+        try:
+            al = Client.login(
+                base_url=args.base_url,
+                client_name="autolecture-skill",
+            )
+        except DeviceAuthError as e:
+            print(f"[auth] login failed: {e}", file=sys.stderr)
+            return 1
 
     main_tex_path = _find_main_tex(workdir)
     main_tex_content = main_tex_path.read_text(encoding="utf-8")
@@ -167,7 +181,7 @@ def main() -> int:
     print(f"   project:  {project_name}")
     print(f"   server:   {args.base_url}")
 
-    with Client(api_key=api_key, base_url=args.base_url) as al:
+    with al:
         # ── 1. create project ────────────────────────────────────────
         proj = al.create_project(project_name, template="blank")
         pid = proj["id"]
