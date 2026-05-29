@@ -12,9 +12,18 @@ The skill's prose rules in [`SKILL.md`](../SKILL.md) and templates are advisory.
 
 ## Canvas (`\aspect{}` → pixel dimensions)
 
-The backend compiles to one of these resolutions based on the project's `\aspect{}`. **Every CSS / Remotion / Manim coordinate you write must stay inside the matching canvas.** No `top: 900` on a 720-tall canvas.
+The backend compiles every view block at the **canvas** picked by `\aspect{}`. The body grammar is:
 
-| `\aspect{}` | Canvas (w × h) | When to use |
+```
+\aspect{RATIO}            % short side = 720p (legacy default)
+\aspect{RATIO, RES}       % short side = RES — 720p / 1080p / 1440p / 2k / 4k
+```
+
+So `\aspect{16:9}` → 1280×720, but `\aspect{16:9, 1080p}` → 1920×1080, and `\aspect{9:16, 4k}` → 2160×3840. **Every CSS / Remotion / Manim coordinate you write must stay inside the matching canvas.** No `top: 900` on a 720-tall canvas.
+
+Below table assumes the **default short side (720p)**. For non-default resolutions multiply both axes by `RES / 720`.
+
+| `\aspect{}` | Canvas at 720p (w × h) | When to use |
 |---|---|---|
 | `16:9`  | 1280 × 720  | Default — landscape, YouTube/B站 |
 | `9:16`  | 720 × 1280  | Vertical — Reels / TikTok / 抖音 |
@@ -23,6 +32,8 @@ The backend compiles to one of these resolutions based on the project's `\aspect
 | `3:4`   | 720 × 960   | Vertical-ish, older social |
 | `4:5`   | 720 × 900   | Instagram portrait |
 | `21:9`  | 1680 × 720  | Cinematic wide |
+
+**Resolution kicks in at compile time, not export.** Export just serves the file (optionally burning the watermark) — no scaling pass. So if the user asks for 4K, you write `\aspect{16:9, 4k}` and re-compile, not flip an export option.
 
 ## Safe zones (fraction of canvas height)
 

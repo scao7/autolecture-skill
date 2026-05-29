@@ -4,7 +4,7 @@
 % Generated scenes: {{N_SCENES}}
 
 \title{{{PROJECT_TITLE}}}
-\aspect{16:9}
+\aspect{16:9}                  % 比例。默认短边 720p。要 1080p / 4K 写 \aspect{16:9, 1080p} / \aspect{16:9, 4k}
 \style{{{STYLE_DESCRIPTION}}}          % 视觉风格（喂 LLM 视觉引擎）
 % \voice{沉稳男中音, 慢节奏, 偏学术}    % 可选：TTS 音色语气（与 \style 解耦；不写则回退用 \style）
 

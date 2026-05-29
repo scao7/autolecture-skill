@@ -53,7 +53,7 @@ WORK=/tmp/autolecture_$(date +%s); mkdir -p $WORK/{scenes,figures}
 ### 6 · 组装 main.tex
 ```latex
 \title{<标题>}
-\aspect{16:9}
+\aspect{16:9}                 % 默认 720p。要 1080p 写 \aspect{16:9, 1080p}；要 4K 写 \aspect{16:9, 4k}
 \style{深色背景、Inter + PingFang SC、accent #6ec1e4}
 
 \begin{videotex}

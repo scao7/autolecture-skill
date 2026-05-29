@@ -2,12 +2,13 @@
   "_comment": "Snapshot of AutoLecture's VideoTeX syntax surface — generated from backend/lecturetex/spec.py 2026-05-29. Regenerate via scripts/regen_dsl_spec.py when the backend evolves. The harness reads this to know which macros + opts are valid (vs which the skill bans on top of valid).",
   "_source": "backend/lecturetex/spec.py",
   "_snapshot_date": "2026-05-29",
+  "_aspect_note": "\\aspect{} body grammar accepts either a bare RATIO (defaults to 720p short side) or 'RATIO, RES' to pick the compile-time resolution. RES tokens map to short-side pixels: 720p=720, 1080p=1080, 1440p=1440, 2k=1440, 4k=2160. Every view block renders natively at that canvas — export is just file serving, no scaling.",
 
   "document_env": "videotex",
 
   "toplevel_macros": {
     "title":     { "opts": [] },
-    "aspect":    { "opts": [], "body_values": ["16:9", "9:16", "1:1", "4:3", "3:4", "4:5", "21:9"] },
+    "aspect":    { "opts": [], "body_grammar": "RATIO | RATIO ',' RES", "body_values_ratio": ["16:9", "9:16", "1:1", "4:3", "3:4", "4:5", "21:9"], "body_values_res": ["720p", "1080p", "1440p", "2k", "4k"], "body_examples": ["16:9", "9:16", "16:9, 1080p", "9:16, 4k", "1:1, 1080p"], "body_default_res": "720p" },
     "style":     { "opts": [] },
     "voice":     { "opts": [] },
     "subtitle":  { "opts": [], "body_values": ["on", "off", "auto"] },

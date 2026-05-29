@@ -122,23 +122,41 @@ def get_bboxes(html_path: Path, canvas_w: int, canvas_h: int) -> list[dict[str, 
 
 # ─── Canvas resolution from main.tex ──────────────────────────────
 
+_RESOLUTION_SHORT_SIDE = {
+    "720p":  720, "1080p": 1080, "1440p": 1440, "2k": 1440,
+    "2160p": 2160, "4k": 2160,
+}
+
+
 def canvas_dims_for_aspect(aspect: str) -> tuple[int, int]:
-    """Map \\aspect{} body to (w, h) — mirrors backend's
-    aspect_to_canvas() at compiler.py:1011. Falls back to 16:9 default
-    when the aspect is unrecognized (so the check still runs, but
-    overflow numbers may be slightly off)."""
-    # Snapshot of the backend table — also lives in harness/spec/layout.yml,
-    # this is the static mirror.
-    table = {
-        "16:9":  (1280, 720),
-        "9:16":  (720, 1280),
-        "1:1":   (720, 720),
-        "4:3":   (960, 720),
-        "3:4":   (720, 960),
-        "4:5":   (720, 900),
-        "21:9":  (1680, 720),
-    }
-    return table.get(aspect.strip(), (1280, 720))
+    """Map \\aspect{} body to (w, h) — mirrors backend's aspect_to_canvas()
+    at compiler.py:1011. Accepts two forms:
+
+      `RATIO`           — legacy. 720p short side (16:9 → 1280×720).
+      `RATIO, RES`      — ratio + resolution token. 720p / 1080p / 1440p /
+                          2k / 4k. `\\aspect{16:9, 1080p}` → 1920×1080.
+
+    Falls back to 16:9 720p when the body can't be parsed, so the check
+    still runs (overflow numbers may be slightly off in that case)."""
+    parts = [p.strip() for p in (aspect or "").split(",", 1)]
+    ratio = parts[0] if parts else "16:9"
+    res = parts[1] if len(parts) > 1 else "720p"
+
+    short = _RESOLUTION_SHORT_SIDE.get(res.lower(), 720)
+    try:
+        rw_s, rh_s = ratio.split(":")
+        rw, rh = float(rw_s), float(rh_s)
+        if rw <= 0 or rh <= 0:
+            raise ValueError("non-positive ratio")
+    except (ValueError, AttributeError):
+        rw, rh = 16.0, 9.0
+    if rw >= rh:
+        h = short
+        w = int(round(short * rw / rh / 2) * 2)
+    else:
+        w = short
+        h = int(round(short * rh / rw / 2) * 2)
+    return (w, h)
 
 
 def project_canvas(workdir: Path) -> tuple[int, int]:

@@ -4,7 +4,8 @@
 
 ```latex
 \title{<title>}
-\aspect{16:9}     % or 9:16 / 1:1
+\aspect{16:9}                 % 比例。默认短边 720p
+% \aspect{16:9, 1080p}        % 或加分辨率：720p / 1080p / 1440p / 2k / 4k
 \style{<视觉风格描述：注入 LLM 视觉引擎 system prompt>}
 \voice{<TTS 音色语气描述，可选；不写则回退用 \style 的描述>}
 
@@ -54,6 +55,13 @@
 ## preamble-only 宏
 
 `\title` / `\aspect` / `\style`（视觉）/ `\voice`（TTS 音色语气，与 `\style` 解耦）/ `\subtitle{on|off|auto}` / `\bgm[volume=,loop=]{path}` / `\character[voice=,speed=]{name}`。
+
+### `\aspect{}` 语法（重要）
+
+- `\aspect{16:9}` — 仅比例，默认短边 **720p**（→ 1280×720）。
+- `\aspect{16:9, 1080p}` — 比例+分辨率。RES 合法值：`720p` / `1080p` / `1440p` / `2k` (= 1440p) / `4k` (= 2160p)。
+- 分辨率在**编译时**就生效：每个 view block 原生渲染到目标尺寸（manim/html/remotion 全部按这个 canvas 出帧）。导出按钮只决定是否烧水印，不再做分辨率切换。
+- 想出 4K，就写 `\aspect{16:9, 4k}` 后重新 compile all（cache 会因为 canvas 改了而 miss → 重渲）。
 
 ## body 元素
 
