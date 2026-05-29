@@ -1,0 +1,52 @@
+{
+  "_comment": "Snapshot of AutoLecture's VideoTeX syntax surface — generated from backend/lecturetex/spec.py 2026-05-29. Regenerate via scripts/regen_dsl_spec.py when the backend evolves. The harness reads this to know which macros + opts are valid (vs which the skill bans on top of valid).",
+  "_source": "backend/lecturetex/spec.py",
+  "_snapshot_date": "2026-05-29",
+
+  "document_env": "videotex",
+
+  "toplevel_macros": {
+    "title":     { "opts": [] },
+    "aspect":    { "opts": [], "body_values": ["16:9", "9:16", "1:1", "4:3", "3:4", "4:5", "21:9"] },
+    "style":     { "opts": [] },
+    "voice":     { "opts": [] },
+    "subtitle":  { "opts": [], "body_values": ["on", "off", "auto"] },
+    "bgm":       { "opts": ["volume", "loop", "fade", "lead"] },
+    "character": { "opts": ["voice", "speaker", "speed", "model"] }
+  },
+
+  "transition_macros": {
+    "fade": { "opts": ["duration", "color"] }
+  },
+
+  "layer_macros": {
+    "image":        { "slot": "visual",    "opts": ["fit", "position", "bg", "lead", "engine", "model", "aspect"] },
+    "imageFile":    { "slot": "visual",    "opts": ["fit", "position", "bg", "lead", "engine", "model", "aspect"] },
+    "video":        { "slot": "visual",    "opts": ["start", "end", "mute", "loop", "fit", "position", "bg", "lead"] },
+    "manim":        { "slot": "visual",    "opts": ["model", "duration", "lead", "engine", "over", "retime"], "kind": "llm_prompt" },
+    "manimFile":    { "slot": "visual",    "opts": ["model", "duration", "lead", "engine", "over", "retime"], "kind": "file_path" },
+    "html":         { "slot": "visual",    "opts": ["model", "duration", "title", "lead", "engine", "over"], "kind": "llm_prompt" },
+    "htmlFile":     { "slot": "visual",    "opts": ["model", "duration", "title", "lead", "engine", "over"], "kind": "file_path" },
+    "remotion":     { "slot": "visual",    "opts": ["model", "duration", "lead", "over"], "kind": "llm_prompt" },
+    "remotionFile": { "slot": "visual",    "opts": ["model", "duration", "lead", "over"], "kind": "file_path" },
+    "wan":          { "slot": "visual",    "opts": ["first_image", "last_image", "ref_image", "model", "duration", "aspect", "mute", "lead", "start", "end"], "paid": true },
+    "seedance":     { "slot": "visual",    "opts": ["first_image", "last_image", "ref_image", "model", "duration", "aspect", "mute", "lead", "start", "end"], "paid": true },
+    "ltx":          { "slot": "visual",    "opts": ["first_image", "last_image", "ref_image", "middle_image", "model", "duration", "aspect", "mute", "lead"], "paid": true },
+    "show":         { "slot": "visual",    "opts": ["model", "duration", "engine", "lead"], "kind": "router" },
+    "audio":        { "slot": "audio",     "opts": ["start", "end", "lead", "volume"] },
+    "bgm":          { "slot": "audio",     "opts": ["volume", "loop", "fade", "lead"] },
+    "say":          { "slot": "narration", "opts": ["voice", "speaker", "speed", "model", "lead", "burn", "as", "volume", "mute"] },
+    "caption":      { "slot": "subtitle",  "opts": ["position", "align"] }
+  },
+
+  "retired_macros": {
+    "text": { "retired_date": "2026-05-21", "replacement": "caption" }
+  },
+
+  "paid_engines": ["wan", "seedance", "ltx"],
+
+  "caption_position_values": ["top", "bottom", "hidden"],
+  "caption_align_values": ["auto", "on", "off"],
+  "say_burn_values": ["on", "off"],
+  "fade_color_values": ["black", "white", "any-hex"]
+}

@@ -50,19 +50,34 @@ def main():
         sys.exit(f"tex not found: {tex_path}")
     print(f"main tex: {tex_path.name}")
 
-    # Validate every referenced asset exists
-    refs = find_referenced_assets(tex_path)
-    missing = []
-    for macro, rel in refs:
-        abs_path = work / rel
-        if not abs_path.is_file():
-            missing.append((macro, rel))
-    if missing:
-        print("ERROR: the following referenced assets are missing:", file=sys.stderr)
-        for macro, rel in missing:
-            print(f"  \\{macro}{{{rel}}}", file=sys.stderr)
-        sys.exit(1)
-    print(f"validated {len(refs)} asset references — all present")
+    # Pre-flight: full harness.check (asset references + all skill rules).
+    # Reuses the same machinery upload_and_compile.py uses, so a project
+    # that zip-passes will also SDK-upload-pass. Importable from the
+    # repo root (harness/ sits next to scripts/).
+    try:
+        # Ensure repo root is on sys.path so `import harness` resolves
+        # whether invoked from inside scripts/ or the repo root.
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from harness.check import main as _harness_main
+    except Exception as e:
+        print(f"WARN: harness unavailable ({e}); falling back to "
+              f"asset-reference-only validation", file=sys.stderr)
+        # Legacy path — at least catch missing files.
+        refs = find_referenced_assets(tex_path)
+        missing = [(m, r) for m, r in refs if not (work / r).is_file()]
+        if missing:
+            print("ERROR: missing assets:", file=sys.stderr)
+            for m, r in missing:
+                print(f"  \\{m}{{{r}}}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        rc = _harness_main([str(work)])
+        if rc != 0:
+            print("ERROR: harness.check failed — refusing to zip a "
+                  "non-compliant project. Fix findings above (or run "
+                  f"`python -m harness.fix {work} --auto --apply` for "
+                  f"auto-fixable ones) and re-run.", file=sys.stderr)
+            sys.exit(rc)
 
     # Zip the directory
     out_path = Path(args.out).resolve()

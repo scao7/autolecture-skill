@@ -6,3 +6,5 @@ project.zip
 out.mp4
 beat_plan.md
 *.whisper.json
+harness/tests/__pycache__/
+**/.pytest_cache/

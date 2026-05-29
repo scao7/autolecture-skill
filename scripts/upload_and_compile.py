@@ -135,6 +135,25 @@ def main() -> int:
         print(f"workdir not found or not a directory: {workdir}", file=sys.stderr)
         return 1
 
+    # Pre-flight: harness.check — refuse to upload+compile a non-compliant
+    # project (would burn ✦ on a render that's going to fail). Same gate
+    # as scripts/package_zip.py so zip-path and SDK-path agree.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    try:
+        from harness.check import main as _harness_main
+    except Exception as e:
+        print(f"WARN: harness unavailable ({e}); skipping pre-flight",
+              file=sys.stderr)
+    else:
+        rc = _harness_main([str(workdir)])
+        if rc != 0:
+            print("ERROR: harness.check failed — refusing to upload a "
+                  "non-compliant project (would burn ✦ on a render that's "
+                  "going to fail).", file=sys.stderr)
+            print(f"Try: python -m harness.fix {workdir} --auto --apply",
+                  file=sys.stderr)
+            return rc
+
     # SDK presence — use require_pip for the standard "fail-loud + how to
     # fix" box (matches transcribe.py / extract_pdf_figures.py).
     sys.path.insert(0, str(Path(__file__).resolve().parent))
