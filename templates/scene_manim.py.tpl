@@ -2,13 +2,19 @@
 
 AUDIO-FIRST TIMING — load-bearing.
 
-The AutoLecture compiler runs `fit_manim_to_target` AST scale on every
-`\\manimFile{}` script: it sums `self.play(run_time=N)` + `self.wait(N)`
-across the construct() method to get the "natural duration", then
-rewrites EVERY `run_time=` kwarg and `wait()` positional arg by a
-constant ratio = `target_dur / natural_dur` so the visual ends exactly
-when the TTS / audio clip ends. Clamped to [0.3×, 4.0×] so a 1s audio
-won't fast-forward a 30s manim into invisibility.
+⚠️ The view MUST reference this file as `\\manimFile[retime=true]{...}`.
+As of 2026-05-22 `\\manimFile` does NOT auto-scale by default (the compiler
+no longer rewrites hand-written code unless asked). `retime=true` turns the
+AST scaler back on for this scene — without it the animation renders at its
+written speed and freezes on the last frame for the rest of the audio.
+
+With `retime=true`, the AutoLecture compiler runs `fit_manim_to_target` AST
+scale on the script: it sums `self.play(run_time=N)` + `self.wait(N)` across
+the construct() method to get the "natural duration", then rewrites EVERY
+`run_time=` kwarg and `wait()` positional arg by a constant ratio =
+`target_dur / natural_dur` so the visual ends exactly when the TTS / audio
+clip ends. Clamped to [0.3×, 4.0×] so a 1s audio won't fast-forward a 30s
+manim into invisibility.
 
 What this means for you when writing this file:
   ✅ Write the durations that FEEL natural for the choreography:
@@ -22,8 +28,8 @@ What this means for you when writing this file:
   ❌ Don't use `time.sleep()` or other non-Manim timing constructs —
      the scaler only sees `self.play(run_time=)` and `self.wait()`.
 
-Class name MUST be `LectureScene` unless the .tex writes
-`\\manimFile[scene=YourClass]{...}`.
+Class name MUST be `LectureScene` — that's the renderer's fixed entry
+point (the per-view `scene=` selector was removed 2026-05-23).
 
 Renderer time budget: target_dur × 3-8 (480p15 default). Scenes that
 would render >300s are killed by the engine; if you're rendering a 90s

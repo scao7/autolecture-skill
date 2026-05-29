@@ -5,7 +5,8 @@
 
 \title{{{PROJECT_TITLE}}}
 \aspect{16:9}
-\style{{{STYLE_DESCRIPTION}}}
+\style{{{STYLE_DESCRIPTION}}}          % 视觉风格（喂 LLM 视觉引擎）
+% \voice{沉稳男中音, 慢节奏, 偏学术}    % 可选：TTS 音色语气（与 \style 解耦；不写则回退用 \style）
 
 \begin{videotex}
 
@@ -22,9 +23,11 @@
 \end{view}
 
 % ──────────────── Example: Manim 数学 ─────────────────────────────
+% retime=true 让 compiler 把动画时长缩放到这一拍的音频长度（audio-first）。
+% 不加 retime 则按源码原速渲染、末帧冻结 —— skill 的 \manimFile 一律加 retime=true。
 \begin{view}[title=Scene_03_Math]
   \audio[start=66.44, end=87.40]{{{AUDIO_FILE}}}
-  \manimFile{scenes/scene_03_math.py}
+  \manimFile[retime=true]{scenes/scene_03_math.py}
 \end{view}
 
 % ──────────────── Example: AI image ───────────────────────────────

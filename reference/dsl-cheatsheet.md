@@ -5,7 +5,8 @@
 ```latex
 \title{<title>}
 \aspect{16:9}     % or 9:16 / 1:1
-\style{<风格描述：注入 LLM system prompt + TTS instruct>}
+\style{<视觉风格描述：注入 LLM 视觉引擎 system prompt>}
+\voice{<TTS 音色语气描述，可选；不写则回退用 \style 的描述>}
 
 \begin{videotex}
   \begin{view}[opts]
@@ -22,7 +23,7 @@
 
 | 宏 | 适用 | 备注 |
 |---|---|---|
-| `\manimFile{path.py}` | Manim Python 源码 | 类名默认 `LectureScene`。`scene=Name` 改类名。`engine=3b1b` 用 manimgl fork |
+| `\manimFile[retime=true]{path.py}` | Manim Python 源码 | 渲染入口类固定为 `LectureScene`（把动画写进这个类；`scene=` 选择器已于 2026-05-23 移除）。**`retime=true` 必加**（2026-05-22 起 `\manimFile` 默认不再自动缩放时长——只有 `retime=true` 才把 `self.play/wait` 缩放到 `\say` 长度，否则按源码原速渲染、末帧冻结）。 |
 | `\htmlFile{path.html}` | HTML 源码 | Playwright 实时录屏；独立的内联 CSS |
 | `\remotionFile{path.tsx}` | Remotion React 源码 | 必须导出 `Comp` / `FPS` / `WIDTH` / `HEIGHT` / `DURATION_FRAMES` |
 | `\imageFile{path.png}` | 上传的图片 | opts: `fit / position / bg / lead` |
@@ -42,9 +43,9 @@
 
 | 宏 | 适用 |
 |---|---|
-| `\text{...}` | 覆盖默认字幕。opts: `position=top|bottom|hidden` / `align=auto|on|off` |
+| `\caption{...}` | 纯烧字幕，**永不驱动 TTS**。opts: `position=top|bottom|hidden` / `align=auto|on|off`。给录音/实拍配字幕就用它（配 `\audio`，原声播放 + 烧字幕）。取代已废除的 `\text` 和已弃用的 `\say[mute=true]`。 |
 
-省略时默认行为：`\say` 有 → 字幕用 `\say` 文字；`\audio` 单独用 → 无字幕。
+省略时默认行为：`\say` 有 → 字幕用 `\say` 文字（需 `burn=on`）；`\audio` 单独用 → 无字幕（加 `\caption` 配字幕）。
 
 ## view-level opts
 
@@ -52,7 +53,7 @@
 
 ## preamble-only 宏
 
-`\title` / `\aspect` / `\style` / `\subtitle{on|off|auto}` / `\bgm[volume=,loop=]{path}` / `\character[voice=,speed=]{name}`。
+`\title` / `\aspect` / `\style`（视觉）/ `\voice`（TTS 音色语气，与 `\style` 解耦）/ `\subtitle{on|off|auto}` / `\bgm[volume=,loop=]{path}` / `\character[voice=,speed=]{name}`。
 
 ## body 元素
 

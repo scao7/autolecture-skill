@@ -49,7 +49,7 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 ## HARD BANS（所有 workflow 通用 —— 任何时候都别破）
 
-1. **禁止用 LLM 提示词宏**：`\manim{prompt}` / `\html{prompt}` / `\remotion{prompt}` / `\show{}` 一律不准。所有视觉必须是 `\manimFile{path.py}` / `\htmlFile{path.html}` / `\remotionFile{path.tsx}` / `\imageFile{path.png}` / `\image[engine=gemini]{prompt}`（AI 生图允许）。理由：LLM 出代码不稳定，编译失败率高；手写源码 + 缓存命中 = 几秒出片。
+1. **禁止用 LLM 提示词宏**：`\manim{prompt}` / `\html{prompt}` / `\remotion{prompt}` / `\show{}` 一律不准。所有视觉必须是 `\manimFile[retime=true]{path.py}` / `\htmlFile{path.html}` / `\remotionFile{path.tsx}` / `\imageFile{path.png}` / `\image[engine=gemini]{prompt}`（AI 生图允许）。理由：LLM 出代码不稳定，编译失败率高；手写源码 + 缓存命中 = 几秒出片。**`\manimFile` 必带 `[retime=true]`**（2026-05-22 起默认不再自动缩放时长，不加则动画不随音频缩放、末帧冻结）。字幕用 `\caption{}`（`\text` 已废除、`\say[mute]` 已弃用）。
 2. **禁止模板偷懒**：每个 scene 的视觉**必须**按该 view 内容定制设计，不能同一模板填不同文字。
 3. **禁止漏修转录错字**：中文 Whisper 大量同音字错误，必须先建[修正映射表](reference/typo-fixes.md)再用于 headline。**音频内容不动**，错字只影响视觉文字。
 4. **禁止 silent fallback —— 质量优先**：依赖缺失 / 抽取失败 / 素材损坏 → **立即报错给用户**，不输出降级产物。`autolecture_no_silent_fallback` 是这个 skill 的生命线。

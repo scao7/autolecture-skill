@@ -8,19 +8,25 @@ compiler 编译时已经知道 audio 时长（target_dur），三个引擎各自
 
 ---
 
-## `\manimFile{}` — compiler 自动 AST scale
+## `\manimFile[retime=true]{}` — compiler AST scale（必须显式开 `retime=true`）
 
-AutoLecture 后端对 `\manimFile` 用户源码跑 `fit_manim_to_target`：扫 `construct()`
+⚠️ **2026-05-22 起 `\manimFile` 默认不再自动缩放时长**。手写源码默认按原速渲染（非破坏
+原则——不偷改你的代码），时长对齐交给合成层 hold/trim（音频比动画长 → 冻结末帧；短 →
+截断）。要走 audio-first 自动缩放，**view 里必须写 `\manimFile[retime=true]{path.py}`**。
+**skill 生成的每个 `\manimFile` 一律加 `retime=true`。**
+
+开了 `retime=true` 后，AutoLecture 对源码跑 `fit_manim_to_target`：扫 `construct()`
 里所有 `self.play(run_time=N)` + `self.wait(N)`，求和得 natural_dur，然后把每个
 `run_time=` 和 `wait()` 按 `target_dur / natural_dur` 倍率统一重写（clamp 在 [0.3×, 4.0×]）。
 
-**写法**：写「自然时长」让 scaler 接管：
+**写法**：scene 写「自然时长」，view 里写 `\manimFile[retime=true]{...}`，让 scaler 接管：
 ```python
 self.play(FadeIn(circle), run_time=1.0)
 self.wait(2.0)
 self.play(circle.animate.scale(1.6), run_time=1.5)
 ```
 **禁止**：
+- 漏写 `retime=true`——scene 不缩放，音频一长画面就冻结（最常见的坑）。
 - 预估「音频 15s 所以 run_time=2.5」——TTS 实际 14.3s 时整片都错。
 - 用 `time.sleep()` 或其它非 Manim 计时——scaler 看不到。
 
