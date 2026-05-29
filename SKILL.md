@@ -68,8 +68,29 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 ---
 
+## 两种运行模式 ── 每条 workflow 第一步先判定
+
+skill **同一套**代码同时支持两种用户场景:
+
+| 模式 | 触发 | 能做 |
+|---|---|---|
+| **dynamic** | 用户有 OAuth 登录态 (`~/.config/autolecture/auth.json` 或 `AUTOLECTURE_API_KEY` env) | 调 SDK 主动查用户状态(voice clone / 余额 / quota)、上传前预估成本、编译失败自动 rerender,最后 SDK 一条龙交付 |
+| **static** | 默认 / 首次用户 / 没装 SDK | **只产 zip 让用户拖** [autolecture.ai](https://autolecture.ai);Claude 不能查用户状态,改用 `AskUserQuestion` 或保守默认 |
+
+**每条 workflow 第 0 步**:
+```bash
+mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
+```
+
+每当 Claude 想用 SDK / 想查用户状态 / 想看 cloud 渲出来的样子 → 先 check `mode`:dynamic 调 SDK,static 走 fallback(详见 [`reference/runtime-modes.md`](reference/runtime-modes.md))。
+
+**不要假设有 SDK** —— 绝大多数用户是 static。
+
+---
+
 ## 通用建筑块（被所有 workflow 引用）
 
+- **两种运行模式速查**（dynamic vs static 每个动作怎么 fallback）→ [`reference/runtime-modes.md`](reference/runtime-modes.md)
 - **audio-first timing**（三引擎写法）→ [`reference/audio-first.md`](reference/audio-first.md)
 - **引擎选择决策树**（哪种内容用 Manim / HTML / Remotion / `\image`）→ [`reference/engine-routing.md`](reference/engine-routing.md)
 - **视觉调色板 + 字体栈**（全片一致）— 两套**二选一**,一个项目内只用一套:
@@ -115,6 +136,8 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 - [`reference/pdf-showcase.md`](reference/pdf-showcase.md) — PDF 两种流程 + 4 种 react-pdf 镜头
 - [`reference/typo-fixes.md`](reference/typo-fixes.md) — 中文 Whisper 常见错字
 - [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 个可借鉴动效技法
+- [`reference/runtime-modes.md`](reference/runtime-modes.md) — dynamic vs static 模式速查(每个动作两种模式怎么做)
+- [`reference/layout-spec.md`](reference/layout-spec.md) — harness 校验的 layout 限值(canvas / safe zone / 字数上限) Claude 读这个就知道边界
 
 ### templates/
 - [`templates/main.tex.tpl`](templates/main.tex.tpl) · [`templates/README.md.tpl`](templates/README.md.tpl)

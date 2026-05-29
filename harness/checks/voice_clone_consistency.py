@@ -16,10 +16,9 @@ HARD-fails offline. Skips gracefully.
 """
 from __future__ import annotations
 
-import json
-import os
 from pathlib import Path
 
+from ..runtime import auth_headers, detect
 from ._common import (
     Finding,
     find_macro_calls,
@@ -32,30 +31,15 @@ from ._common import (
 CHECK_NAME = "voice_clone_consistency"
 
 
-def _resolve_auth() -> tuple[str, str] | None:
-    """(api_key, base_url) or None. Mirrors the SDK's resolution chain."""
-    key = os.environ.get("AUTOLECTURE_API_KEY")
-    base_url = os.environ.get("AUTOLECTURE_BASE_URL")
-    if key:
-        return key, (base_url or "https://autolecture.ai")
-    cache_path = Path(
-        os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
-    ) / "autolecture" / "auth.json"
-    if not cache_path.is_file():
-        return None
-    try:
-        blob = json.loads(cache_path.read_text("utf-8"))
-        key = blob.get("api_key")
-        if not key:
-            return None
-        return key, (base_url or blob.get("base_url") or "https://autolecture.ai")
-    except Exception:
-        return None
-
-
-def _user_has_voice_sample(api_key: str, base_url: str) -> bool | None:
+def _user_has_voice_sample(base_url: str) -> bool | None:
     """GET /api/v2/me/voice-sample → True if sample registered, False if
-    not, None on network error / wrong key."""
+    not, None on network error / wrong key.
+
+    Uses harness.runtime.auth_headers() so the auth resolution chain
+    matches the SDK + the rest of the skill exactly."""
+    headers = auth_headers()
+    if headers is None:
+        return None
     try:
         import httpx  # type: ignore
     except ImportError:
@@ -63,7 +47,7 @@ def _user_has_voice_sample(api_key: str, base_url: str) -> bool | None:
     try:
         r = httpx.get(
             f"{base_url.rstrip('/')}/api/v2/me/voice-sample",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers=headers,
             timeout=8.0,
         )
         if r.status_code == 200:
@@ -91,11 +75,10 @@ def run(workdir: Path) -> list[Finding]:
     with_voice_mine = [c for c in say_calls if c.opt("voice") == "mine"]
     without_voice_mine = [c for c in say_calls if c.opt("voice") != "mine"]
 
-    auth = _resolve_auth()
-    if auth is not None:
+    mode = detect()
+    if mode.is_dynamic() and mode.base_url:
         # Online mode — ask the backend whether the user has a sample.
-        api_key, base_url = auth
-        has_sample = _user_has_voice_sample(api_key, base_url)
+        has_sample = _user_has_voice_sample(mode.base_url)
         if has_sample is True:
             for call in without_voice_mine:
                 findings.append(Finding(

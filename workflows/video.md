@@ -14,6 +14,19 @@
 
 ## 步骤
 
+### 0 · 检测运行模式
+```bash
+mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
+```
+- **dynamic** → 可调 SDK 预估编译成本、SDK 一条龙交付
+- **static** → 只产 zip 让用户拖 [autolecture.ai](https://autolecture.ai)
+
+详见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
+
+**这条 workflow 不做 TTS**(用原片音频),所以**不需要查 voice clone 状态**——`voice=mine` 跟这条 workflow 无关。
+
+⚠️ **资产大小注意**:原片 ≥ 100MB(几乎所有 1080p+ 视频)→ 都得**转码代理片**(720p H.264 < 100MB)才能通过 zip / SDK 上传。详见 [HARD BAN #11 例外条款](../SKILL.md) 与 [`large-media-upload-constraint` memory note]。
+
 ### 1 · 准备工作目录 + 分析音频
 ```bash
 WORK=/tmp/autolecture_$(date +%s); mkdir -p $WORK/{scenes,figures}

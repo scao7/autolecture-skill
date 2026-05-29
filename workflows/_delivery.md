@@ -1,10 +1,17 @@
 # 交付（所有 workflow 的最后一步）
 
-**默认：打包 zip 让用户自己上传。** 先看用户有没有我们的 API key
-（`AUTOLECTURE_API_KEY`）：
+**先判定运行模式 → 决定走哪条路径**(对应 [`reference/runtime-modes.md`](../reference/runtime-modes.md)):
 
-- **没有**（绝大多数情况）→ 走**路径 A · zip**（下方）。这是当前的默认交付方式。
-- **有** → 可以走路径 B（SDK 直传）；但这条路径还在随 API 完善，**没特别要求就还是给 zip**。
+```bash
+mode=$(python -m scripts.runtime_mode)
+```
+
+| `mode` | 默认路径 | 备注 |
+|---|---|---|
+| **static**(默认/绝大多数用户) | **路径 A · zip** | 唯一选项 |
+| **dynamic**(用户登录过 OAuth / 有 key) | **路径 A · zip**(默认)or 路径 B(用户明确要"让 Claude 帮我编译") | 没特别要求就给 zip,省事更稳 |
+
+路径 A 永远可走;路径 B 只在 dynamic 才走得通。
 
 ---
 
