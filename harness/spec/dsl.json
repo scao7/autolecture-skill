@@ -36,12 +36,17 @@
     "show":         { "slot": "visual",    "opts": ["model", "duration", "engine", "lead"], "kind": "router" },
     "audio":        { "slot": "audio",     "opts": ["start", "end", "lead", "volume"] },
     "bgm":          { "slot": "audio",     "opts": ["volume", "loop", "fade", "lead"] },
-    "say":          { "slot": "narration", "opts": ["voice", "speaker", "speed", "model", "lead", "burn", "as", "volume", "mute"] },
+    "say":          { "slot": "narration", "opts": ["voice", "speaker", "speed", "model", "lead", "burn", "as", "volume"] },
     "caption":      { "slot": "subtitle",  "opts": ["position", "align"] }
   },
 
   "retired_macros": {
     "text": { "retired_date": "2026-05-21", "replacement": "caption" }
+  },
+
+  "deprecated_opts": {
+    "_comment": "Opts still parsed by the backend for back-compat but the skill MUST NOT generate them. mirrors backend spec.py DEPRECATED_OPTS (added 2026-05-29).",
+    "say": { "mute": { "deprecated": "2026-05-22", "replacement": "\\caption{...} (pure subtitle, no TTS)" } }
   },
 
   "paid_engines": ["wan", "seedance", "ltx"],
