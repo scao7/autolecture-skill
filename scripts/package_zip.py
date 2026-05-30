@@ -51,8 +51,8 @@ def main():
     print(f"main tex: {tex_path.name}")
 
     # Pre-flight: full harness.check (asset references + all skill rules).
-    # Reuses the same machinery upload_and_compile.py uses, so a project
-    # that zip-passes will also SDK-upload-pass. Importable from the
+    # Same gate the mcp-mode path runs before pushing files, so a project
+    # that zip-passes will also pass in the cloud. Importable from the
     # repo root (harness/ sits next to scripts/).
     try:
         # Ensure repo root is on sys.path so `import harness` resolves

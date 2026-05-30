@@ -199,7 +199,7 @@ def find_macro_calls(tex: str, macro_name: str) -> list[MacroCall]:
 # ─── Project walker (for checks that need to enumerate scene files) ──
 
 def find_main_tex(workdir: Path) -> Path:
-    """Pick the main .tex file (matches upload_and_compile.py's logic)."""
+    """Pick the main .tex file (the project's entry tex)."""
     for name in ("main.tex", "index.tex", "video.tex", "script.tex"):
         p = workdir / name
         if p.is_file():
