@@ -9,19 +9,17 @@ kind of video you want, then routes to the matching workflow:
 - **PDF paper** → *explain it* (extract figures) or *show it* (render the real pages with react-pdf, zoom + locate + highlight — technique borrowed from [pdf2video](https://github.com/DangJin/pdf2video))
 - **real footage** → overlay transparent motion graphics on top (`over=`)
 
-Claude generates the scenes, then either packages a zip you upload, or
-uploads + compiles + downloads the mp4 via the
-[autolecture](https://github.com/scao7/autolecture-python) Python SDK.
+Claude generates the scenes, then — if you've connected the AutoLecture
+**MCP connector** — builds the project and compiles it in the cloud
+directly via MCP tools; otherwise it packages a zip you upload at
+[autolecture.ai](https://autolecture.ai).
 
 ## Install
 
 ```bash
-# 1. Add the skill to your agent — one line, works with Claude Code,
-#    Cursor, Codex, and 12+ other agents. Add -g for a global install.
+# Add the skill to your agent — one line, works with Claude Code,
+# Cursor, Codex, and 12+ other agents. Add -g for a global install.
 npx skills add scao7/autolecture-skill
-
-# 2. Install the Python SDK (used by the one-click upload+compile flow)
-pip install autolecture
 ```
 
 `npx skills` is [Vercel Labs' open agent-skills tool](https://github.com/vercel-labs/skills);
@@ -32,16 +30,14 @@ Claude Code). Prefer git? Clone it yourself:
 git clone https://github.com/scao7/autolecture-skill.git ~/.claude/skills/autolecture-skill
 ```
 
-**Sign in** — the SDK handles auth for you. The first compile prints a
-`/connect?code=…` link; approve it in your browser (OAuth device flow)
-and the token is cached to `~/.config/autolecture/auth.json`. For CI /
-headless runs, set an API key instead (mint at
-<https://autolecture.ai/account> → 🔑 API Keys → Generate; the
-`al_live_…` value is shown once):
-
-```bash
-export AUTOLECTURE_API_KEY='al_live_…'
-```
+**To let Claude compile in the cloud** (so you get a finished video
+without touching the web UI), connect the AutoLecture **MCP connector**
+in your agent: Settings → Connectors → Add →
+`https://mcp.autolecture.ai/mcp` → approve in the browser. Then Claude
+creates the project, writes the files, and compiles via MCP tools end to
+end. Without a connector the skill just packages a project **zip** you
+upload at [autolecture.ai](https://autolecture.ai) — the path most
+**claude.ai web** users take.
 
 **Per-input-type extras** — install only what your input needs:
 
@@ -86,23 +82,21 @@ input you have (asking if unclear), then opens the matching playbook in
 Every workflow hand-writes a `\manimFile` / `\htmlFile` /
 `\remotionFile` source per scene (**no LLM-codegen render macros** — the
 skill bans those; see SKILL.md HARD BANS), then converges on the shared
-delivery step [`workflows/_delivery.md`](workflows/_delivery.md): package
-a zip, or run [`scripts/upload_and_compile.py`](scripts/upload_and_compile.py)
-to create a project, upload assets, PUT the tex, poll the compile job
-block-by-block, and download the mp4.
+delivery step [`workflows/_delivery.md`](workflows/_delivery.md): with the
+MCP connector, Claude creates the project, writes the files, uploads
+assets, compiles in the cloud, and fixes failing scenes by fetching
+frames — all via MCP tools. Without it, Claude packages a zip you upload.
 
-Typical session ends like:
+With the MCP connector on, a session ends like:
 
 ```
-== compile succeeded — 6 ✦ spent in 42.1s
-   downloading final mp4 → ./out.mp4
-[done]
+✓ compiled — 6 ✦ spent
   open in Studio: https://autolecture.ai/studio?id=…
 ```
 
-Open `out.mp4` locally, or follow the Studio URL to keep tweaking in
-the web editor (regenerate individual scenes, swap voices, add BGM,
-re-render).
+Follow the Studio URL to play it or keep tweaking (regenerate scenes,
+swap voices, add BGM, re-render). In zip mode you get a zip to drop on
+[autolecture.ai](https://autolecture.ai) instead.
 
 ## Where this runs
 
@@ -119,18 +113,15 @@ IDE paths all read your local `~/.claude/skills/`. Upgrade with
 
 ## Troubleshooting
 
-- **`AUTOLECTURE_API_KEY env var not set`** — see Install step 3.
-- **`Missing the autolecture SDK`** — confirm the venv Claude Code is
-  using has it: `which python && python -c "import autolecture; print(autolecture.__version__)"`.
-- **Compile fails** — the script exits 1 and prints the error-log tail.
-  Open the Studio URL it prints, inspect the failed block (it'll have
-  a red icon), iterate on its source, re-run.
+- **No cloud compile happening?** — Claude only compiles when the
+  AutoLecture **MCP connector** is connected (Settings → Connectors).
+  Without it the skill produces a zip for you to upload at autolecture.ai.
+- **Compile fails** — Claude inspects the failing scene (fetches a frame
+  via MCP), fixes its source, and re-renders just that block. If it can't,
+  it hands you the Studio URL — open it, fix the red block, recompile.
 - **`(429) rate_limited` or `(402) insufficient_credits`** — the
   message includes window + limit + your current balance. Top up at
   <https://autolecture.ai/account> or wait for the daily reset.
-- **Target a different backend** —
-  `export AUTOLECTURE_BASE_URL=https://dev.autolecture.ai` (default
-  is `https://autolecture.ai`).
 - **Missing system binary** (ffmpeg / pdftoppm / git) — the helper
   scripts hard-exit with the install command. Follow the message.
 
@@ -138,7 +129,7 @@ IDE paths all read your local `~/.claude/skills/`. Upgrade with
 
 - Skill spec — [SKILL.md](SKILL.md) (authoritative; read this if
   you're extending the skill)
-- Python SDK — <https://github.com/scao7/autolecture-python> · `pip install autolecture`
+- Remote MCP — <https://mcp.autolecture.ai/mcp> (connect it in your agent for cloud compile)
 - AutoLecture web app — <https://autolecture.ai>
 - VideoTeX DSL reference — <https://autolecture.ai/docs/dsl>
 

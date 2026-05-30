@@ -168,7 +168,7 @@ python -m harness.check /tmp/your_work_dir --only tts_length
 python -m harness.check /tmp/your_work_dir --json
 ```
 
-Both `scripts/package_zip.py` and `scripts/upload_and_compile.py` call this automatically — failing the check refuses to zip / upload.
+`scripts/package_zip.py` calls this automatically — failing the check refuses to zip. In mcp 模式,跑完同样的 harness check 再用 MCP 工具 `write_file` + `compile` 推上云端。
 
 ## Full backend syntax surface
 

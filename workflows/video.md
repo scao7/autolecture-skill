@@ -14,13 +14,13 @@
 
 ## 步骤
 
-### 0 · 用 SKILL.md 入口已确认的 mode
+### 0 · 用 SKILL.md 入口已确认的运行模式
 
-> **`$mode` 已在 SKILL.md 入口 ② 定下**。
+> **运行模式已在 SKILL.md 入口 ① 定下**(mcp / zip)。
 
 **这条 workflow 不做 TTS**(用原片自带音频),所以**不需要查 voice clone 状态**——`voice=mine` 跟这条 workflow 无关。
 
-⚠️ **资产大小注意**:原片 ≥ 100MB(几乎所有 1080p+ 视频)→ 都得**转码代理片**(720p H.264 < 100MB)才能通过 zip / SDK 上传。详见 [HARD BAN #11 例外条款](../SKILL.md) + memory `large-media-upload-constraint`。
+⚠️ **资产大小注意**:原片 ≥ 100MB(几乎所有 1080p+ 视频)→ 都得**转码代理片**(720p H.264 < 100MB)才能通过 zip / MCP 上传。详见 [HARD BAN #11 例外条款](../SKILL.md) + memory `large-media-upload-constraint`。
 
 ### 1 · 准备工作目录 + 分析音频
 ```bash

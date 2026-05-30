@@ -7,16 +7,16 @@
 
 ## 步骤
 
-### 0 · 用 SKILL.md 入口已确认的 mode + 定 voice clone 处理
+### 0 · 用 SKILL.md 入口已确认的运行模式 + 定 voice clone 处理
 
-> **`$mode` 已在 SKILL.md 入口 ② 定下**——dynamic 还是 static 这里不再问。继续往下,DYNAMIC / STATIC 分两条路。
+> **运行模式已在 SKILL.md 入口 ① 定下**(mcp / zip)——这里不再问。下面 voice clone 决策按模式分支。
 
 **voice clone 处理决策**(这条 workflow 特有,决定后面 `\say` 写不写 `voice=mine`):
 
-- **DYNAMIC**:`python -c "from autolecture import Client; print(Client().get_voice_sample())"` → `filename` 字段存在 = 有 sample → plan 写"所有 `\say` 带 `voice=mine`";否则用默认 speaker。
-- **STATIC**:`AskUserQuestion` 三选一:① 是,用我的克隆声(全片 `voice=mine`) ② 否 / 不清楚(默认 speaker) ③ 我要保留原声不做 TTS(走 `\audio[start,end]{}` + `\caption{}` 路径,不用 `\say` TTS)。
+- **mcp**:看 `whoami`(或相关工具)给的用户信息里有没有 voice sample;有 → plan 写"所有 `\say` 带 `voice=mine`";拿不到就同 zip 问用户。
+- **zip**:`AskUserQuestion` 三选一:① 是,用我的克隆声(全片 `voice=mine`) ② 否 / 不清楚(默认 speaker) ③ 我要保留原声不做 TTS(走 `\audio[start,end]{}` + `\caption{}` 路径,不用 `\say` TTS)。
 
-决策写进 `<work>/beat_plan.md`,**整片所有 `\say` 用同一种处理,不能 mix**。每个动作的 dynamic/static fallback 全表见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
+决策写进 `<work>/beat_plan.md`,**整片所有 `\say` 用同一种处理,不能 mix**。每个动作的两模式 fallback 全表见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
 
 ### 1 · 准备 + 转录
 ```bash

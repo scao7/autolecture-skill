@@ -1,6 +1,6 @@
 ---
 name: autolecture-skill
-description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。交付两条路径：打包 zip 让用户上传, 或用 autolecture Python SDK 一键上传+编译+下载 mp4。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
+description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
 ---
 
 # autolecture-skill
@@ -25,11 +25,25 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 ---
 
-## 入口:**两个连环问**(先一次问到位,workflow 内部不再追问)
+## 入口:**开场先定两件事**(一次问到位,workflow 内部不再追问)
 
-### 入口 ① · 主输入是什么类型? → 选 workflow
+### 入口 ① · 运行模式? → 先看有没有 MCP(**workflow 跑之前必定**)
 
-**第一步永远是搞清楚用户手上有什么主输入**（看用户给的文件 + 说的话；不明确就用 AskUserQuestion 问）。然后**读对应的 workflow 文件**并照它执行：
+**skill 一启动,第一件事是检查你当前有没有 autolecture 的 MCP 工具** —— 连上 `mcp.autolecture.ai/mcp` 连接器后,工具列表里会出现 `create_project` / `write_file` / `edit_file` / `add_asset` / `compile` / `get_status` / `fetch_frame` 这些(前缀视客户端而定,如 `autolecture:compile`)。这是 Claude 自己就能看见的事实,不用跑脚本。
+
+- **有 MCP 工具** → **mcp 模式**(首选)。Claude 直接用这些工具在云端建项目、写 `main.tex` + scene 文件、上传素材、编译、拉渲出的帧看效果 —— 全程不落本地 zip,一条龙做完,编译挂了能自己 `fetch_frame` 看帧调。
+- **没有 MCP 工具** → 用 `AskUserQuestion` 问用户,二选一:
+
+  | 选项 | 走哪条 |
+  |---|---|
+  | **① 用 MCP(推荐)** —— Claude 直接帮你在云端建项目 + 编译 + 看效果,做完给 Studio 链接 | 引导连接器:在你的客户端(Claude.ai / Cursor / Claude Code)Settings → Connectors → Add → 粘 `https://mcp.autolecture.ai/mcp` → 浏览器点批准(OAuth)。连好后让工具刷新 / 重开对话,再启动 skill → 进 **mcp 模式** |
+  | **② 给我 zip,我自己上传** —— 不连任何东西,适合 claude.ai 网页端 / 不想授权的用户 | **zip 模式**:Claude 产出项目 zip,你拖到 [autolecture.ai](https://autolecture.ai) 上传(网页自动识别 main.tex + 注册素材) |
+
+定好模式后 **workflow 内部不再问** —— 每个 workflow 的 step 0 直接照 `mcp / zip` 分支。两种模式每个动作怎么做,对照 [`reference/runtime-modes.md`](reference/runtime-modes.md)。
+
+### 入口 ② · 主输入是什么类型? → 选 workflow
+
+**搞清楚用户手上有什么主输入**（看用户给的文件 + 说的话；不明确就用 AskUserQuestion 问）。然后**读对应的 workflow 文件**并照它执行：
 
 | 用户的主输入 / 诉求 | workflow | 一句话 |
 |---|---|---|
@@ -45,40 +59,9 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 - 音频 / 文字 + 想在画面里**展示** PDF 原件 → 叠 [`workflows/pdf-paper.md`](workflows/pdf-paper.md) 的 Flow B 镜头。
 - 任意 + 实拍片段 → 那几镜用 [`workflows/video.md`](workflows/video.md) 的 `over=` 叠加 / 剪辑结合。
 
-### 入口 ② · 交付方式? → 确认/升级到 dynamic(**workflow 跑之前必问**)
+### 入口 ③ · 然后照常推进
 
-立刻检测当前模式:
-```bash
-mode=$(python -m scripts.runtime_mode)
-```
-
-| 检测结果 | 怎么做 |
-|---|---|
-| `dynamic`(已登录 / 有 cache) | 简单 confirm 一次:"我看到你已经登录 `<email>`,继续 dynamic 模式 — 我会自动上传编译。OK 吗?" — 用 AskUserQuestion 给两个选项:`继续 dynamic` / `这次只产 zip 不上传`。 |
-| `static`(新用户 / 没登录) | **必问 AskUserQuestion**,三选一: |
-
-**static 模式下必问的题(标准模板):**
-
-```
-"先确认交付方式 — 影响后面整套流程怎么走:
-
-① 登录 AutoLecture,Claude 自动上传 + 编译 + 下载 mp4(推荐)
-   30 秒登录(打开链接点批准)。之后整片做完我直接交一个能播的 mp4 + Studio 链接。
-   Claude 还能:查你 voice clone 状态、上传前预估 ✦、编译挂了自动 rerender。
-
-② 只产 zip 给我,我自己拖到 autolecture.ai 上传
-   不用登录。Claude 不查你账号状态,voice clone / 余额这些事问你。
-   产出 zip 你拖网页编译。
-
-③ 稍后决定(默认按 ② 走,到 delivery 再问一次)"
-```
-
-- 用户选 ① → `bash> autolecture login` 打印 `/connect?code=…` URL 给用户点 → cache 落盘 → re-run `python -m scripts.runtime_mode`(应该返 dynamic)→ workflow 继续以 dynamic 模式跑
-- 用户选 ② / ③ → mode 锁 static,workflow 内部全走 static 路径
-
-**Workflow 内部不再问 mode** —— 已经在入口定好。每个 workflow 的 step 1 直接照 `$mode` 分支。
-
-详细的 dynamic / static 每个动作对照表:[`reference/runtime-modes.md`](reference/runtime-modes.md)。
+模式 + 主输入定好后,就是正常视频流程 —— workflow 里依次跟用户确认:**要做什么**(选题 / 范围)、**手上的素材**(主输入 + 配套 figure / repo / 实拍)、**想要的视觉风格**(调色板二选一:editorial dark 还是 AutoLecture brand)。然后写口播稿 → 配画面 → 交付。
 
 ---
 
@@ -107,29 +90,26 @@ mode=$(python -m scripts.runtime_mode)
 
 ---
 
-## 两种运行模式 ── 每条 workflow 第一步先判定
+## 两种运行模式 ── 每条 workflow 第 0 步先判定
 
-skill **同一套**代码同时支持两种用户场景:
+skill 支持两种用户场景,看 Claude 当前有没有 autolecture MCP 工具:
 
 | 模式 | 触发 | 能做 |
 |---|---|---|
-| **dynamic** | 用户有 OAuth 登录态 (`~/.config/autolecture/auth.json` 或 `AUTOLECTURE_API_KEY` env) | 调 SDK 主动查用户状态(voice clone / 余额 / quota)、上传前预估成本、编译失败自动 rerender,最后 SDK 一条龙交付 |
-| **static** | 默认 / 首次用户 / 没装 SDK | **只产 zip 让用户拖** [autolecture.ai](https://autolecture.ai);Claude 不能查用户状态,改用 `AskUserQuestion` 或保守默认 |
+| **mcp**(首选) | 当前工具列表里有 autolecture MCP 工具(连了 `mcp.autolecture.ai/mcp` 连接器) | Claude 直接用 MCP 工具:云端 `create_project`、`write_file`/`edit_file` 写 tex+scene、`add_asset` 传素材、`compile`+`get_status` 编译、`fetch_frame`/`fetch_waveform` 看渲出效果 —— 一条龙,编译挂了自己看帧调 |
+| **zip**(默认 fallback) | 没 MCP、用户也不想连(含 **claude.ai 网页端**) | **只产 zip 让用户拖** [autolecture.ai](https://autolecture.ai);Claude 查不了用户状态,改用 `AskUserQuestion` 或保守默认 |
 
-**每条 workflow 第 0 步**:
-```bash
-mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
-```
+**判定(每条 workflow 第 0 步)**:看工具列表有没有 autolecture MCP 工具 —— 有 = **mcp**,没有 = **zip**。这是 Claude 自己看得见的,不跑脚本、不看本地文件。
 
-每当 Claude 想用 SDK / 想查用户状态 / 想看 cloud 渲出来的样子 → 先 check `mode`:dynamic 调 SDK,static 走 fallback(详见 [`reference/runtime-modes.md`](reference/runtime-modes.md))。
+每当 Claude 想建项目 / 写文件 / 编译 / 查用户状态 / 看 cloud 渲出的样子 → 先按模式分支:**mcp 调 MCP 工具,zip 走本地 fallback + 打 zip**(详见 [`reference/runtime-modes.md`](reference/runtime-modes.md))。
 
-**不要假设有 SDK** —— 绝大多数用户是 static。
+**别默认有 MCP** —— 很多用户(尤其 claude.ai 网页端)只能走 zip。
 
 ---
 
 ## 通用建筑块（被所有 workflow 引用）
 
-- **两种运行模式速查**（dynamic vs static 每个动作怎么 fallback）→ [`reference/runtime-modes.md`](reference/runtime-modes.md)
+- **两种运行模式速查**（mcp / zip 每个动作怎么做）→ [`reference/runtime-modes.md`](reference/runtime-modes.md)
 - **audio-first timing**（三引擎写法）→ [`reference/audio-first.md`](reference/audio-first.md)
 - **引擎选择决策树**（哪种内容用 Manim / HTML / Remotion / `\image`）→ [`reference/engine-routing.md`](reference/engine-routing.md)
 - **视觉调色板 + 字体栈**（全片一致）— 两套**二选一**,一个项目内只用一套:
@@ -138,7 +118,7 @@ mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
 - **VideoTeX 语法速查** → [`reference/dsl-cheatsheet.md`](reference/dsl-cheatsheet.md)（在线文档 <https://autolecture.ai/docs/dsl>）
 - **配套素材 anchor 匹配**（PDF figure / repo 截图 / 本地图）→ [`reference/figure-matching.md`](reference/figure-matching.md)
 - **可借鉴动效技法**（写新 scene 前翻一下）→ [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md)
-- **交付**（zip 上传 / SDK 直传）→ [`workflows/_delivery.md`](workflows/_delivery.md)
+- **交付**（MCP 直驱 / zip 上传）→ [`workflows/_delivery.md`](workflows/_delivery.md)
 
 工作目录与产出物结构（所有 workflow 共用）：
 ```
@@ -163,7 +143,7 @@ mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
 - [`workflows/audio-upload.md`](workflows/audio-upload.md) — 录音 / 播客（rough / polished）
 - [`workflows/pdf-paper.md`](workflows/pdf-paper.md) — PDF 论文（A 讲解 / B 展示原件）
 - [`workflows/video.md`](workflows/video.md) — 实拍视频（叠加毛玻璃特效 / 剪辑结合，不做 TTS）
-- [`workflows/_delivery.md`](workflows/_delivery.md) — 共用交付（zip / SDK）
+- [`workflows/_delivery.md`](workflows/_delivery.md) — 共用交付（MCP / zip）
 
 ### reference/
 - [`reference/audio-first.md`](reference/audio-first.md) — 三引擎 audio-first 写法（铁律）
@@ -175,7 +155,7 @@ mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
 - [`reference/pdf-showcase.md`](reference/pdf-showcase.md) — PDF 两种流程 + 4 种 react-pdf 镜头
 - [`reference/typo-fixes.md`](reference/typo-fixes.md) — 中文 Whisper 常见错字
 - [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 个可借鉴动效技法
-- [`reference/runtime-modes.md`](reference/runtime-modes.md) — dynamic vs static 模式速查(每个动作两种模式怎么做)
+- [`reference/runtime-modes.md`](reference/runtime-modes.md) — mcp / zip 两模式速查(每个动作怎么做)
 - [`reference/layout-spec.md`](reference/layout-spec.md) — harness 校验的 layout 限值(canvas / safe zone / 字数上限) Claude 读这个就知道边界
 
 ### templates/
@@ -192,8 +172,7 @@ mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
 - [`scripts/find_beats.py`](scripts/find_beats.py) — anchor-phrase 定位时间戳
 - [`scripts/extract_pdf_figures.py`](scripts/extract_pdf_figures.py) — PDF figure 抽取（默认 figures-only）
 - [`scripts/clone_github_assets.py`](scripts/clone_github_assets.py) — repo 图片 sparse-clone
-- [`scripts/package_zip.py`](scripts/package_zip.py) — 交付 A：校验 + 打包 zip
-- [`scripts/upload_and_compile.py`](scripts/upload_and_compile.py) — 交付 B：SDK 一键上传 + 编译 + 下载 mp4
+- [`scripts/package_zip.py`](scripts/package_zip.py) — zip 模式：校验 + 打包 zip（mcp 模式直接用 MCP 工具写文件 + 编译,不用脚本）
 
 ### 关键经验（实际跑过的 demo）
 1. **不要把 70s+ 的 Manim 单 scene 当作天经地义** —— 1000+ 帧 + 40 dot + 多 FadeIn 渲染超 300s timeout；同样视觉用 Remotion DOM 模拟（CSS 粒子 + transform）<10s。
@@ -203,4 +182,4 @@ mode=$(python -m scripts.runtime_mode)   # → "dynamic" 或 "static"
 5. **`\imageFile` ≠ `\image`** —— 前者是上传素材，后者是 AI 生图；可一起用（固定背景 `\imageFile`，特殊插画 `\image`）。
 
 ### 上游
-- 主项目 <https://github.com/scao7/autolecture> · SDK <https://github.com/scao7/autolecture-python> · DSL 文档 <https://autolecture.ai/docs/dsl>
+- 主项目 <https://github.com/scao7/autolecture> · 远程 MCP <https://mcp.autolecture.ai/mcp> · DSL 文档 <https://autolecture.ai/docs/dsl>

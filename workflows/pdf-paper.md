@@ -18,9 +18,9 @@ PDF 有**两种完全不同的诉求**，先判断再动手（详见 [`../refere
 
 ### 0 · 用 SKILL.md 入口已确认的 mode
 
-> **`$mode` 已在 SKILL.md 入口 ② 定下**。
+> **运行模式已在 SKILL.md 入口 ① 定下**(mcp / zip)。
 
-如果旁白要走 TTS(LLM 写 PDF 讲解稿),**voice clone 决策**同 audio-upload / text-to-lecture——dynamic 查 `Client().get_voice_sample()`,static 用 `AskUserQuestion` 问用户。如果旁白用用户另给的录音(叠加 audio-upload workflow),则按那条 workflow 的 step 0 处理。
+如果旁白要走 TTS(LLM 写 PDF 讲解稿),**voice clone 决策**同 audio-upload / text-to-lecture——按运行模式(mcp 看 `whoami` / zip 用 `AskUserQuestion` 问用户)。如果旁白用用户另给的录音(叠加 audio-upload workflow),则按那条 workflow 的 step 0 处理。
 
 详细见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
 
