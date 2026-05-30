@@ -16,14 +16,30 @@ uploads + compiles + downloads the mp4 via the
 ## Install
 
 ```bash
-# 1. Clone the skill into Claude Code's skills directory
-git clone https://github.com/scao7/autolecture-skill.git ~/.claude/skills/autolecture-skill
+# 1. Add the skill to your agent — one line, works with Claude Code,
+#    Cursor, Codex, and 12+ other agents. Add -g for a global install.
+npx skills add scao7/autolecture-skill
 
-# 2. Install the Python SDK (required for every flow)
+# 2. Install the Python SDK (used by the one-click upload+compile flow)
 pip install autolecture
+```
 
-# 3. Mint an API key at https://autolecture.ai/account → 🔑 API Keys → Generate.
-#    Copy the al_live_… value immediately — shown ONCE.
+`npx skills` is [Vercel Labs' open agent-skills tool](https://github.com/vercel-labs/skills);
+it clones this repo into your agent's skills dir (`~/.claude/skills/` for
+Claude Code). Prefer git? Clone it yourself:
+
+```bash
+git clone https://github.com/scao7/autolecture-skill.git ~/.claude/skills/autolecture-skill
+```
+
+**Sign in** — the SDK handles auth for you. The first compile prints a
+`/connect?code=…` link; approve it in your browser (OAuth device flow)
+and the token is cached to `~/.config/autolecture/auth.json`. For CI /
+headless runs, set an API key instead (mint at
+<https://autolecture.ai/account> → 🔑 API Keys → Generate; the
+`al_live_…` value is shown once):
+
+```bash
 export AUTOLECTURE_API_KEY='al_live_…'
 ```
 
@@ -98,8 +114,8 @@ re-render).
 | **claude.ai web** → Customize → Skills → **+** | ✓ | upload this repo as a Personal Skill (zip or git URL) |
 
 The web upload keeps a copy on Anthropic's side; the CLI / desktop /
-IDE paths all read your local `~/.claude/skills/` so re-cloning the
-repo is the upgrade path.
+IDE paths all read your local `~/.claude/skills/`. Upgrade with
+`npx skills update` (or re-clone if you installed via git).
 
 ## Troubleshooting
 
