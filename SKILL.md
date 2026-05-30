@@ -87,6 +87,11 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
     - **转场** → `\fade` / view 边界，不要把转场烧进素材。
 
     理由：P1 **LaTeX 是唯一真相**、P2 **没有 GUI 漂移** —— 剪辑是 .tex 里**可改、可预览、非破坏性**的字符（预览即导出）。预剪素材 = 把剪辑决策烧死在文件里、绕过 .tex，违反整套架构。（唯一例外:原片实在过大时可先粗剪到一个工作区间当 asset,但**精剪仍写在 .tex 里**。）
+12. **resume = 云端为唯一真相**：任何继续 / resume 任务的**第一个动作必须是 `get_snapshot`**,以云端实际文件 + `main.tex` 的 view 顺序为准。summary / journal / 记忆里的文件清单只当**线索**,逐个 `read_file` 核对真身;**别信「已全部写好」**。理由：compaction summary 会点名错文件(废弃草稿、缺镜、命名打架),凭它接手会改错那套。详见 [`reference/resume-checklist.md`](reference/resume-checklist.md)。
+13. **样张先行(强制)**：任何**多镜任务先端到端做 1 个样张并签字**(建项目 → 写 1 镜 → 编译 → `fetch_frame` 看帧 → 用户说「可以」),**再批量**剩余镜。理由：样张返工成本是 1 镜,量产后返工是 N 镜;最值钱的一步。
+14. **一个项目一套命名前缀 + 替换即清理孤儿**：一个项目只用一套 scene 命名前缀(如 `hd_*`),**替换旧版时顺手 `delete_file` / `move_file` 归档**,不留混版孤儿文件。`main.tex` 的 view 顺序(或 `MANIFEST.md`)是**当前正式镜次的唯一清单**。理由：多套前缀并存 = resume 时得靠考古猜「哪套正式」。
+15. **`main.tex` 骨架先行**：先建**全部 view 的可编译骨架**(每 view 先放占位 `\say` + `\htmlFile`)并立刻提交,**再逐镜填**;全程保持可编译 / 有序 / 可恢复态。**`\say` 与对应画面放同一 view**(别让旁白只躺在草稿里,否则 resume 得照原文重切)。
+16. **`\manimFile` 必带 `[retime=true]`;`\say` ≤400 字、默认不烧字幕**(要 `burn=on` 才烧)。理由(retime)：2026-05-22 起默认不再自动缩放时长,不加则动画不随音频缩放、末帧冻结。(此条与 ban 1 呼应,resume / 批量量产时尤其容易漏。)
 
 ---
 
@@ -157,6 +162,9 @@ skill 支持两种用户场景,看 Claude 当前有没有 autolecture MCP 工具
 - [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 个可借鉴动效技法
 - [`reference/runtime-modes.md`](reference/runtime-modes.md) — mcp / zip 两模式速查(每个动作怎么做)
 - [`reference/layout-spec.md`](reference/layout-spec.md) — harness 校验的 layout 限值(canvas / safe zone / 字数上限) Claude 读这个就知道边界
+- [`reference/hand-drawn-storybook.md`](reference/hand-drawn-storybook.md) — 手绘 storybook 风技法(内联 SVG 描边 draw 动画 + feTurbulence 钢笔抖动 + bob/sway 微动 + 品牌色),寓言体 / 故事化讲解可整片复用
+- [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — 编译 / 单镜预览 / `fetch_frame` 抽帧三件套的反直觉点(成本量级、单 view 临时覆写 main.tex、content_hash 当 scene_id、base64 落盘解码、改分辨率=全量重渲)
+- [`reference/resume-checklist.md`](reference/resume-checklist.md) — resume 任务核对清单：`get_snapshot` 对齐云端真相、逐个 `read_file` 核对、清理孤儿、骨架先行
 
 ### templates/
 - [`templates/main.tex.tpl`](templates/main.tex.tpl) · [`templates/README.md.tpl`](templates/README.md.tpl)
