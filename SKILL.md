@@ -1,6 +1,6 @@
 ---
 name: autolecture-skill
-version: 0.9.0
+version: 0.9.1
 description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画(录制产出 screen/camera 两条原始轨,画中画用模板编排可后期调); 参考视频→视觉复刻(抽帧串读动效照着写scene)。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
 ---
 
@@ -96,6 +96,7 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 14. **一个项目一套命名前缀 + 替换即清理孤儿**：一个项目只用一套 scene 命名前缀(如 `hd_*`),**替换旧版时顺手 `delete_file` / `move_file` 归档**,不留混版孤儿文件。`main.tex` 的 view 顺序(或 `MANIFEST.md`)是**当前正式镜次的唯一清单**。理由：多套前缀并存 = resume 时得靠考古猜「哪套正式」。
 15. **`main.tex` 骨架先行**：先建**全部 view 的可编译骨架**(每 view 先放占位 `\say` + `\htmlFile`)并立刻提交,**再逐镜填**;全程保持可编译 / 有序 / 可恢复态。**`\say` 与对应画面放同一 view**(别让旁白只躺在草稿里,否则 resume 得照原文重切)。
 16. **`\manimFile` 必带 `[retime=true]`;`\say` ≤400 字、默认不烧字幕**(要 `burn=on` 才烧)。理由(retime)：2026-05-22 起默认不再自动缩放时长,不加则动画不随音频缩放、末帧冻结。(此条与 ban 1 呼应,resume / 批量量产时尤其容易漏。)
+17. **禁止「全写完再编译」—— 每写一个 view 当场编译**：`compile` 是增量的(没改的块全走缓存,只渲新块),所以写 1 镜 → `write_file` → 当场 `compile(wait_seconds=60)` → 看 `block_errors` → 修好 → 下一镜,**成本和最后一次性编译完全一样,但错误一次只来一个**。批量写完再编译 = N 个块的报错一起砸进对话 + 调试时上下文已耗尽("conversation too long" 直接死会话,已写未编译的东西全没验证)。**上下文卫生**配套：scene 代码写进 `write_file` 就别再在正文里复述;改文件用 `edit_file` 别整文件重写;`fetch_frame` 只在编译报错或关键视觉验证时取 1-2 帧,图片极耗上下文。
 
 ---
 

@@ -7,6 +7,14 @@ agent 连上 `mcp.autolecture.ai/mcp` 后调 `server_info`，把返回的
 语法真相以 MCP 的 `get_dsl_spec` 为准；bundled `harness/spec/dsl.json`
 只是 zip/离线模式的 fallback。
 
+## 0.9.1 — 2026-06-10
+
+- HARD BAN 17: 禁止「全写完再编译」—— 每写一个 view 当场增量编译验证;
+  配套上下文卫生(不复述 scene 代码 / edit_file 改文件 / fetch_frame 限 1-2 帧)。
+  起因: claude.ai 长视频会话批量写完再编,上下文爆掉 "conversation too long",
+  已写内容全未验证。MCP 工具描述(compile/write_file/fetch_frame)同步烧入此纪律,
+  没装 skill 的纯 MCP 会话也能看到。
+
 ## 0.9.0 — 2026-06-10
 
 - 版本协商：SKILL.md frontmatter 加 `version:`；mcp 模式启动先调 `server_info` 对账
