@@ -101,7 +101,7 @@ skill 支持两种用户场景,看 Claude 当前有没有 autolecture MCP 工具
 
 | 模式 | 触发 | 能做 |
 |---|---|---|
-| **mcp**(首选) | 当前工具列表里有 autolecture MCP 工具(连了 `mcp.autolecture.ai/mcp` 连接器) | Claude 直接用 MCP 工具:云端 `create_project`、`write_file`/`edit_file` 写 tex+scene、`add_asset` 传素材、`compile`+`get_status` 编译、`fetch_frame`/`fetch_waveform` 看渲出效果、`list_scene_versions`/`pick_scene_version` 回滚到更好的历史渲染版本、`get_captions` 拿对齐后的逐行字幕(改 `\caption{}` 即时生效不用重渲) —— 一条龙,编译挂了自己看帧调 |
+| **mcp**(首选) | 当前工具列表里有 autolecture MCP 工具(连了 `mcp.autolecture.ai/mcp` 连接器) | Claude 直接用 MCP 工具:云端 `create_project`、`write_file`/`edit_file` 写 tex+scene、`add_asset` 传素材、`compile`+`get_status` 编译、`fetch_frame`/`fetch_waveform` 看渲出效果、`list_scene_versions`/`pick_scene_version` 回滚到更好的历史渲染版本、`get_captions` 拿对齐后的逐行字幕(实拍改 `{src}.transcript.txt`、覆盖场景改 `\caption{}`,都即时生效不用重渲) —— 一条龙,编译挂了自己看帧调 |
 | **zip**(默认 fallback) | 没 MCP、用户也不想连(含 **claude.ai 网页端**) | **只产 zip 让用户拖** [autolecture.ai](https://autolecture.ai);Claude 查不了用户状态,改用 `AskUserQuestion` 或保守默认 |
 
 **判定(每条 workflow 第 0 步)**:看工具列表有没有 autolecture MCP 工具 —— 有 = **mcp**,没有 = **zip**。这是 Claude 自己看得见的,不跑脚本、不看本地文件。

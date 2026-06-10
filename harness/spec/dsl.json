@@ -42,7 +42,12 @@
       "opts": []
     },
     "subtitle": {
-      "opts": [],
+      "opts": [
+        "color",
+        "position",
+        "punct",
+        "size"
+      ],
       "body_values": [
         "on",
         "off",

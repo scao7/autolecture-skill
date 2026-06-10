@@ -54,7 +54,7 @@
 
 ## preamble-only 宏
 
-`\title` / `\aspect` / `\style`（视觉）/ `\voice`（TTS 音色语气，与 `\style` 解耦）/ `\subtitle{on|off|auto}` / `\bgm[volume=,loop=]{path}` / `\character[voice=,speed=]{name}` / `\cliplibrary{clips/day1}`（声明剪辑素材库，可重复，BibTeX 模式）。
+`\title` / `\aspect` / `\style`（视觉）/ `\voice`（TTS 音色语气，与 `\style` 解耦）/ `\subtitle[size=, color=, position=top|bottom, punct=keep]{on|off|auto}`（样式只影响显示/烧录，**不触发重渲**） / `\bgm[volume=,loop=]{path}` / `\character[voice=,speed=]{name}` / `\cliplibrary{clips/day1}`（声明剪辑素材库，可重复，BibTeX 模式）。
 
 ### clip 库（剪辑素材的 BibTeX）
 
@@ -74,7 +74,7 @@
 \begin{view}\video{@intro_hook}\end{view}
 ```
 
-字幕机制：`\caption{}` 写**一整段连续文本**即可——行级拆分和时间码是派生物（对齐语音后自动按标点/约 18 字切成满屏句子），**不要**手写时间。唯一的拆分覆盖：正文里写 `\\` 强制在该处断句。整片可导出 SRT（`GET /projects/{id}/captions.srt`）。
+字幕机制（实拍默认走**素材级文稿**）：给素材写 `assets/{media}.transcript.txt`（整段校正稿）+ 已有的 `{media}.whisper.json`（`transcribe` 产物），**所有引用该素材的 view 自动按各自 [start,end] 窗口派生字幕**——tex 里零字幕内容，拖剪点字幕自动跟随，改文稿即时重对齐（免重渲）。`\caption{}` 仍可作 view 级显式覆盖：写**一整段连续文本**即可——行级拆分和时间码是派生物（对齐语音后自动按标点/约 18 字切成满屏句子），**不要**手写时间。唯一的拆分覆盖：正文里写 `\\` 强制在该处断句。整片可导出 SRT（`GET /projects/{id}/captions.srt`）。
 
 规则：声明的库**严格**（文件缺失 / 跨库重名 segment → 报错）；clip 文档里禁止 view / 特效 / `\say`；随手剪一刀直接在 view 里写 `\video[start=, end=]{src}`（匿名内联 trim），不必进库。**agent 粗剪 = 写 clip 库；人微调 = Studio 里拖剪点 / 改字幕**——双方编辑同一份 .tex。
 

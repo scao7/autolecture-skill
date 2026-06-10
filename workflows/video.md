@@ -10,6 +10,10 @@
 > 原片不动）、拼接用 view 顺序、转场用 `\fade`。**不要**在外面 ffmpeg 切片/拼接/变速再丢进来 ——
 > 那会把剪辑烧死在文件里、绕过 .tex（P1 LaTeX 唯一真相 / 预览即导出）。
 
+> 📝 **配字幕 = 写素材级文稿**：`transcribe` 拿词级时间戳 → 把校正后的整段文稿
+> `write_file` 到 `{media}.transcript.txt` → 引用该素材的所有 view 自动派生字幕
+> （窗口切片 + 满屏断句 + 默认去标点）。不要把字幕写进 clip.tex / main.tex。
+
 > 📚 **多镜复用同一段素材 → 进 clip 库**（剪辑素材的 BibTeX）：粗剪结果集中写
 > `clips/*.tex` 的 `\begin{segment}{name}`（trim + 可选 `\caption`），main.tex 导言区
 > `\cliplibrary{clips/day1}` 声明后用 `\video{@name}` 引用；只剪一刀就直接内联
