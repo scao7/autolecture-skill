@@ -1,5 +1,6 @@
 ---
 name: autolecture-skill
+version: 0.9.0
 description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画(录制产出 screen/camera 两条原始轨,画中画用模板编排可后期调); 参考视频→视觉复刻(抽帧串读动效照着写scene)。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
 ---
 
@@ -32,6 +33,8 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 **skill 一启动,第一件事是检查你当前有没有 autolecture 的 MCP 工具** —— 连上 `mcp.autolecture.ai/mcp` 连接器后,工具列表里会出现 `create_project` / `write_file` / `edit_file` / `add_asset` / `compile` / `get_status` / `fetch_frame` 这些(前缀视客户端而定,如 `autolecture:compile`)。这是 Claude 自己就能看见的事实,不用跑脚本。
 
 - **有 MCP 工具** → **mcp 模式**(首选)。Claude 直接用这些工具在云端建项目、写 `main.tex` + scene 文件、上传素材、编译、拉渲出的帧看效果 —— 全程不落本地 zip,一条龙做完,编译挂了能自己 `fetch_frame` 看帧调。
+  **连上后先调一次 `server_info` 做版本对账**：① 返回的 `skill_version_current` 比本 SKILL.md 头部的 `version` 新 → 告诉用户「skill 有新版,跑 `npx skills add scao7/autolecture-skill` 更新(claude.ai 重传 zip)」,然后照常继续——不阻塞本次任务;② 返回的 `dsl_spec_sha` 和本地 `harness/spec/dsl.json` 对不上时,语法以 `get_dsl_spec` 拉到的 **live spec 为准**(bundled dsl.json 只是离线 fallback)。
+  **起步可走模板**:`list_gallery_templates` → 看中哪个就 `get_template_card(slug)` 读填法 → `use_gallery_template(slug)` 克隆成新项目,在它基础上替换占位,比从零写快得多(模板都是编译验证过的真项目)。
 - **没有 MCP 工具** → 用 `AskUserQuestion` 问用户,二选一:
 
   | 选项 | 走哪条 |
