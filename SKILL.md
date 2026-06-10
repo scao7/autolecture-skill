@@ -1,6 +1,6 @@
 ---
 name: autolecture-skill
-description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
+description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画(录制产出 screen/camera 两条原始轨,画中画用模板编排可后期调); 参考视频→视觉复刻(抽帧串读动效照着写scene)。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
 ---
 
 # autolecture-skill
@@ -47,12 +47,13 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 | 用户的主输入 / 诉求 | workflow | 一句话 |
 |---|---|---|
+| 给一个**参考视频**要"照这个风格做"（YouTube 链接/文件/项目资产） | [`workflows/replicate-style.md`](workflows/replicate-style.md) | 抽帧串读动效 → 手写 scene 复刻视觉语言（YouTube 仅限 Claude Code 本地） |
 | 只有**文字 / 一句指令 / 选题**，无录音 | [`workflows/text-to-lecture.md`](workflows/text-to-lecture.md) | **先写口播稿给用户定稿** → TTS → 按口播配画面 |
 | 一段**录音 / 播客**（mp3/wav/m4a） | [`workflows/audio-upload.md`](workflows/audio-upload.md) | 转录 + 修错字 → 保留原声直接剪 或 voice clone 重合成 |
 | 一份 **PDF 论文** | [`workflows/pdf-paper.md`](workflows/pdf-paper.md) | A 讲解知识(抽 figure) 或 B 展示原件(真页 + zoom + 定位高亮) |
 | 一段**实拍视频** / **录屏 + 头像** | [`workflows/video.md`](workflows/video.md) | 不做 TTS,用原音频切分 → 叠加特效(毛玻璃) / 剪辑结合 / Tella 录屏画中画 |
 
-要问就用 AskUserQuestion，选项就是上面四类：「① 我给文字 / 选题 ② 我录了音频 / 播客 ③ 我有 PDF 论文 ④ 我有实拍视频」。
+要问就用 AskUserQuestion，选项就是上面五类：「① 我给文字 / 选题 ② 我录了音频 / 播客 ③ 我有 PDF 论文 ④ 我有实拍视频 ⑤ 我有参考视频要照着做」。
 
 **可叠加**：主输入选一个 workflow 当主线，其它素材作配套 ——
 - 音频 / 文字 + PDF figure / GitHub repo / 本地图 → 主 workflow 里按 [`reference/figure-matching.md`](reference/figure-matching.md) match 进画面。
@@ -101,7 +102,7 @@ skill 支持两种用户场景,看 Claude 当前有没有 autolecture MCP 工具
 
 | 模式 | 触发 | 能做 |
 |---|---|---|
-| **mcp**(首选) | 当前工具列表里有 autolecture MCP 工具(连了 `mcp.autolecture.ai/mcp` 连接器) | Claude 直接用 MCP 工具:云端 `create_project`、`write_file`/`edit_file` 写 tex+scene、`add_asset` 传素材、`compile`+`get_status` 编译、`fetch_frame`/`fetch_waveform` 看渲出效果、`list_scene_versions`/`pick_scene_version` 回滚到更好的历史渲染版本、`get_captions` 拿对齐后的逐行字幕(实拍改 `{src}.transcript.txt`、覆盖场景改 `\caption{}`,都即时生效不用重渲) —— 一条龙,编译挂了自己看帧调 |
+| **mcp**(首选) | 当前工具列表里有 autolecture MCP 工具(连了 `mcp.autolecture.ai/mcp` 连接器) | Claude 直接用 MCP 工具:云端 `create_project`、`write_file`/`edit_file` 写 tex+scene、`add_asset` 传素材、`compile`+`get_status` 编译、`fetch_frame`/`fetch_waveform` 看渲出效果、`list_scene_versions`/`pick_scene_version` 回滚到更好的历史渲染版本、`fetch_asset_frame` 看原始素材的帧(复刻参考/编排检查)、`get_captions` 拿对齐后的逐行字幕(实拍改 `{src}.transcript.txt`、覆盖场景改 `\caption{}`,都即时生效不用重渲) —— 一条龙,编译挂了自己看帧调 |
 | **zip**(默认 fallback) | 没 MCP、用户也不想连(含 **claude.ai 网页端**) | **只产 zip 让用户拖** [autolecture.ai](https://autolecture.ai);Claude 查不了用户状态,改用 `AskUserQuestion` 或保守默认 |
 
 **判定(每条 workflow 第 0 步)**:看工具列表有没有 autolecture MCP 工具 —— 有 = **mcp**,没有 = **zip**。这是 Claude 自己看得见的,不跑脚本、不看本地文件。

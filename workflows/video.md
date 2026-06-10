@@ -10,6 +10,14 @@
 > 原片不动）、拼接用 view 顺序、转场用 `\fade`。**不要**在外面 ffmpeg 切片/拼接/变速再丢进来 ——
 > 那会把剪辑烧死在文件里、绕过 .tex（P1 LaTeX 唯一真相 / 预览即导出）。
 
+> 🎥 **录屏+摄像头（Tella 式）素材是三个文件**：站内录制的 `screen_cam` 模式
+> 产出 `{name}.webm`（圆角头像合成预览，仅供快速回看）+ **`{name}.screen.webm` +
+> `{name}.camera.webm` 两条完整原始轨**。要做画中画编排时**永远用两条原始轨**
+> （[`templates/scene_screencast_pip.tsx.tpl`](../templates/scene_screencast_pip.tsx.tpl)：
+> SCREEN_FILE/WEBCAM_FILE 指向两个文件，PIP_SCALE/PIP_CORNER/PIP_MARGIN/
+> MORPH_START/MORPH_END 全部可调，含全屏头像→缩角的 morph），合成预览那个文件
+> 不要进正片。布局拿不准就 `fetch_asset_frame` 先看两条轨的画面再定参数。
+
 > 📝 **配字幕 = 写素材级文稿**：`transcribe` 拿词级时间戳 → 把校正后的整段文稿
 > `write_file` 到 `{media}.transcript.txt` → 引用该素材的所有 view 自动派生字幕
 > （窗口切片 + 满屏断句 + 默认去标点）。不要把字幕写进 clip.tex / main.tex。
