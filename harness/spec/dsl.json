@@ -49,6 +49,9 @@
         "auto"
       ]
     },
+    "cliplibrary": {
+      "opts": []
+    },
     "bgm": {
       "opts": [
         "fade",
