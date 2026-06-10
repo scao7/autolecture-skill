@@ -6,8 +6,6 @@ from . import (
     asset_references,
     caption_density,
     hardban_llm_macros,
-    html_overflow_render,
-    html_text_overlap,
     manimfile_retime,
     overlay_transparent_root,
     retired_macros,
@@ -15,11 +13,11 @@ from . import (
     voice_clone_consistency,
 )
 
-# Ordering note: L1 (static) checks run first so they fail fast on cheap
-# violations. L3 (render-based) checks run last because they're the
-# slowest (~2s per scene Playwright session).
+# All checks are STATIC (source-text only). Visual verification is
+# deliberately server-side: compile → MCP fetch_frame. Local render
+# probes were removed 2026-06-09 — the skill ships knowledge, the
+# server ships eyes.
 ALL_CHECKS = [
-    # L1 — static / text-only
     tts_length,
     manimfile_retime,
     hardban_llm_macros,
@@ -28,8 +26,4 @@ ALL_CHECKS = [
     asset_references,
     overlay_transparent_root,
     voice_clone_consistency,
-    # L3 — Playwright local-render (skipped gracefully if comfyui env
-    # unavailable; the per-scene WARN surfaces the skip).
-    html_overflow_render,
-    html_text_overlap,
 ]

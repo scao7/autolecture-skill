@@ -54,7 +54,27 @@
 
 ## preamble-only 宏
 
-`\title` / `\aspect` / `\style`（视觉）/ `\voice`（TTS 音色语气，与 `\style` 解耦）/ `\subtitle{on|off|auto}` / `\bgm[volume=,loop=]{path}` / `\character[voice=,speed=]{name}`。
+`\title` / `\aspect` / `\style`（视觉）/ `\voice`（TTS 音色语气，与 `\style` 解耦）/ `\subtitle{on|off|auto}` / `\bgm[volume=,loop=]{path}` / `\character[voice=,speed=]{name}` / `\cliplibrary{clips/day1}`（声明剪辑素材库，可重复，BibTeX 模式）。
+
+### clip 库（剪辑素材的 BibTeX）
+
+剪辑分块（trim）以**非破坏**方式集中写在 clip 文档里，main.tex 用 `@名字` 引用：
+
+```latex
+% main.tex 导言区（不声明则默认找 clip.tex）
+\cliplibrary{clips/day1}        % 省略 .tex 自动补全，同 \bibliography
+
+% clips/day1.tex —— 顶层只允许 \begin{segment}{name}
+\begin{segment}{intro_hook}
+\video[start=2, end=8]{takes/a.mp4}
+\caption{开场字幕}              % 可选：随段落走的字幕
+\end{segment}
+
+% main.tex 正文 —— segment≈@entry, \video{@name}≈\cite
+\begin{view}\video{@intro_hook}\end{view}
+```
+
+规则：声明的库**严格**（文件缺失 / 跨库重名 segment → 报错）；clip 文档里禁止 view / 特效 / `\say`；随手剪一刀直接在 view 里写 `\video[start=, end=]{src}`（匿名内联 trim），不必进库。**agent 粗剪 = 写 clip 库；人微调 = Studio 里拖剪点 / 改字幕**——双方编辑同一份 .tex。
 
 ### `\aspect{}` 语法（重要）
 
