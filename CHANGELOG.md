@@ -7,6 +7,22 @@ agent 连上 `mcp.autolecture.ai/mcp` 后调 `server_info`，把返回的
 语法真相以 MCP 的 `get_dsl_spec` 为准；bundled `harness/spec/dsl.json`
 只是 zip/离线模式的 fallback。
 
+## 0.10.0 — 2026-06-13
+
+- 入口加 **freestyle / 模版商城分叉**(入口 ②):定好运行模式后先问用户「自由创作」
+  还是「去模版商城找专用模版」。自由创作 = 现有 workflows 按主输入分流(独立可用,
+  不依赖商城);模版商城 = 服务端按题材(genre)交付的专用创作指令卡,经 MCP 按需拉取。
+- 新增 [`reference/marketplace.md`](reference/marketplace.md):商城路径 playbook
+  ——列题材 → 选模版 → `get_template_card` 拉创作指令卡 → `use_gallery_template`
+  克隆起始项目 → 按卡 recipe 接管。仅 mcp 模式(zip 回退 freestyle);含 entitlement
+  鉴权与 `publish_template` 自建模版说明。
+- **跨 agent 设计**:商城内容全部住服务端、经 MCP 交付,不做本地安装 skill,所以
+  Claude / Codex 等任何连了 `mcp.autolecture.ai/mcp` 的 agent 都能消费同一批模版。
+  marketplace.md 用 agent 中立措辞写,作为后续多 agent 打包的抽象缝。
+- 新增 [`genre-skills/fable-science.md`](genre-skills/fable-science.md):第一张
+  **题材 recipe 卡**(寓言科普)——把抽象/技术概念讲成手绘 storybook 寓言。服务端
+  模版卡 `demos/cards/fable_paper.md` 引用它作配套 recipe;后续题材卡照此格式扩。
+
 ## 0.9.1 — 2026-06-10
 
 - HARD BAN 17: 禁止「全写完再编译」—— 每写一个 view 当场增量编译验证;

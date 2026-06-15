@@ -1,7 +1,7 @@
 ---
 name: autolecture-skill
-version: 0.9.1
-description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先问用户要做哪种视频,再分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画(录制产出 screen/camera 两条原始轨,画中画用模板编排可后期调); 参考视频→视觉复刻(抽帧串读动效照着写scene)。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
+version: 0.10.0
+description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先定运行模式,再问用户**自由创作还是去模版商城找专用模版**(商城里每个题材是服务端按需交付的创作指令卡,任何连了 MCP 的 agent 都能用);自由创作再按主输入类型分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画(录制产出 screen/camera 两条原始轨,画中画用模板编排可后期调); 参考视频→视觉复刻(抽帧串读动效照着写scene)。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
 ---
 
 # autolecture-skill
@@ -26,7 +26,7 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 ---
 
-## 入口:**开场先定两件事**(一次问到位,workflow 内部不再追问)
+## 入口:**开场先定三件事**(一次问到位,workflow 内部不再追问)
 
 ### 入口 ① · 运行模式? → 先看有没有 MCP(**workflow 跑之前必定**)
 
@@ -44,7 +44,22 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 
 定好模式后 **workflow 内部不再问** —— 每个 workflow 的 step 0 直接照 `mcp / zip` 分支。两种模式每个动作怎么做,对照 [`reference/runtime-modes.md`](reference/runtime-modes.md)。
 
-### 入口 ② · 主输入是什么类型? → 选 workflow
+### 入口 ② · 走哪条路? → 自由创作 / 去模版商城
+
+定好模式后,问用户这条片子怎么起步(用 `AskUserQuestion` 二选一):
+
+| 选项 | 走哪条 |
+|---|---|
+| **① 自由创作(freestyle)** —— 我来帮你从零定方案 | 进**入口 ③** 按主输入类型分流到 `workflows/`,**不依赖商城**,基础功能永远可用 |
+| **② 去模版商城找专用模版** —— 按题材挑个验证过的起点 | 走 [`reference/marketplace.md`](reference/marketplace.md):列题材 → 选模版 → 拉创作指令卡 → 克隆起始项目 → 按卡 recipe 接管。**仅 mcp 模式可用**(zip 模式回退 freestyle) |
+
+- **不确定 / 用户没明确诉求** → 默认 **freestyle**(自由创作能独立工作,最稳)。
+- 选了商城就跳去 `reference/marketplace.md`,**不再走入口 ③ 的主输入分流**——题材卡里已含 recipe。
+- 选了 freestyle 继续往下。
+
+### 入口 ③ · (freestyle)主输入是什么类型? → 选 workflow
+
+> 仅**自由创作**路径走这步;走了模版商城的直接照卡做,跳过本步。
 
 **搞清楚用户手上有什么主输入**（看用户给的文件 + 说的话；不明确就用 AskUserQuestion 问）。然后**读对应的 workflow 文件**并照它执行：
 
@@ -63,7 +78,7 @@ description: 把用户素材端到端做成可在 AutoLecture (https://autolectu
 - 音频 / 文字 + 想在画面里**展示** PDF 原件 → 叠 [`workflows/pdf-paper.md`](workflows/pdf-paper.md) 的 Flow B 镜头。
 - 任意 + 实拍片段 → 那几镜用 [`workflows/video.md`](workflows/video.md) 的 `over=` 叠加 / 剪辑结合。
 
-### 入口 ③ · 然后照常推进
+### 入口 ④ · 然后照常推进
 
 模式 + 主输入定好后,就是正常视频流程 —— workflow 里依次跟用户确认:**要做什么**(选题 / 范围)、**手上的素材**(主输入 + 配套 figure / repo / 实拍)、**想要的视觉风格**(调色板二选一:editorial dark 还是 AutoLecture brand)。然后写口播稿 → 配画面 → 交付。
 
@@ -166,6 +181,7 @@ skill 支持两种用户场景,看 Claude 当前有没有 autolecture MCP 工具
 - [`reference/typo-fixes.md`](reference/typo-fixes.md) — 中文 Whisper 常见错字
 - [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 个可借鉴动效技法
 - [`reference/runtime-modes.md`](reference/runtime-modes.md) — mcp / zip 两模式速查(每个动作怎么做)
+- [`reference/marketplace.md`](reference/marketplace.md) — 模版商城路径(入口 ② 选「去商城」时走):列题材 → 选模版 → 拉创作指令卡 → 克隆起始项目 → 按卡接管(仅 mcp;含 publish 自建模版说明)
 - [`reference/layout-spec.md`](reference/layout-spec.md) — harness 校验的 layout 限值(canvas / safe zone / 字数上限) Claude 读这个就知道边界
 - [`reference/hand-drawn-storybook.md`](reference/hand-drawn-storybook.md) — 手绘 storybook 风技法(内联 SVG 描边 draw 动画 + feTurbulence 钢笔抖动 + bob/sway 微动 + 品牌色),寓言体 / 故事化讲解可整片复用
 - [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — 编译 / 单镜预览 / `fetch_frame` 抽帧三件套的反直觉点(成本量级、单 view 临时覆写 main.tex、content_hash 当 scene_id、base64 落盘解码、改分辨率=全量重渲)
