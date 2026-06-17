@@ -1,115 +1,115 @@
-# 把素材 match 到音频 beat
+# Matching assets to audio beats
 
-抽到的图（PDF page / figure / repo screenshot）怎么对应到 transcript 的哪一段 — 锚句规则 + 设计建议。
+How a grabbed figure (PDF page / figure / repo screenshot) maps to a segment of the transcript — anchor-sentence rules + design recommendations.
 
-## 通用原则
+## General principle
 
-**每张被用上的图都要有锚句证据**。写到 `beat_plan.md` 里：
+**Every figure used must have anchor-sentence evidence.** Write it into `beat_plan.md`:
 
 ```markdown
-| 图 | match 到 beat | anchor 证据（transcript 原句） |
+| figure | matched beat | anchor evidence (verbatim transcript sentence) |
 |---|---|---|
-| `figures/fig-3.png` | beat 7 (collapse) | "如图 3 所示，所有向量都坍塌到同一点" |
+| `figures/fig-3.png` | beat 7 (collapse) | "As shown in Figure 3, all vectors collapse to the same point" |
 ```
 
-没找到锚句 → **不要用**。宁愿一段画面没有图，也不要凭"这段差不多是讲这个"瞎塞。
+No anchor sentence found → **don't use it**. Better to leave a passage with no figure than to shove one in because "this part is roughly about that."
 
 ---
 
-## PDF 论文的 anchor 规则
+## Anchor rules for PDF papers
 
-**默认只用 figure crop** — `extract_pdf_figures.py` 默认 figures-only。整页栅格只在显式做「文字 highlight」时才出（`--with-pages` 开关）。
+**Default to figure crops only** — `extract_pdf_figures.py` is figures-only by default. Full-page rasters only appear when you explicitly do a "text highlight" (`--with-pages` flag).
 
-### 强匹配（直接用 figure）
+### Strong match (use the figure directly)
 
-| transcript 出现 | 匹配到 |
+| transcript mentions | matches |
 |---|---|
-| "图 1 / 图 2 / 图 3" | `fig-1.png` / `fig-2.png` / ...（按 manifest 里检测顺序编号） |
-| "Figure 1 / Fig. 2" | 同上（中英混录场景） |
-| "如图所示 / 上图 / 下图" | 上下文最近的 figure（look-back/forward in beats） |
-| 论文 caption 文字片段出现 | "Loss landscape 这个图" 匹配 caption 包含 "loss landscape" 的 figure |
+| "Figure 1 / Figure 2 / Figure 3" | `fig-1.png` / `fig-2.png` / ... (numbered by detection order in the manifest) |
+| "Figure 1 / Fig. 2" | same as above (mixed-language recording case) |
+| "as shown / the figure above / the figure below" | nearest figure in context (look-back/forward in beats) |
+| a fragment of the paper caption text appears | "the loss landscape figure" matches the figure whose caption contains "loss landscape" |
 
-### 文字 highlight 场景（需要 `--with-pages`）
+### Text-highlight cases (need `--with-pages`)
 
-下面这些场景**才**需要整页栅格 — 单 figure 不够用。规划时显式标注 `[needs-page]`，重跑 `extract_pdf_figures.py --with-pages`：
+The cases below are the **only** ones that need a full-page raster — a single figure isn't enough. Explicitly tag `[needs-page]` when planning, and re-run `extract_pdf_figures.py --with-pages`:
 
-| transcript 场景 | 整页用法 |
+| transcript case | full-page usage |
 |---|---|
-| "我们看公式 (3) 这一段" | 整页 + zoom 到公式区域 + 红框 annotate |
-| "原文里这段说..." 引用一段文字 | 整页 + highlight 那段文字的 bounding box |
-| 论文 abstract / introduction 整段朗读 | 整页 slow scroll |
-| 章节首页作为分割卡 | 整页作 chapter divider 静态展示 |
+| "let's look at equation (3) here" | full page + zoom to the equation region + red-box annotate |
+| "the original text says..." quoting a passage | full page + highlight that passage's bounding box |
+| reading the paper's abstract / introduction aloud | full page slow scroll |
+| section title page as a divider card | full page as a static chapter divider |
 
-### 不匹配（不强加图）
+### No match (don't force a figure)
 
-- 整段在讲宏观叙事 / 哲学 / 致谢 → 用纯 Remotion/HTML scene
-- 没有任何 figure-relevant 锚句 → 不强加图
+- A passage that's all macro narrative / philosophy / acknowledgements → use a pure Remotion/HTML scene
+- No figure-relevant anchor sentence at all → don't force a figure
 
 ---
 
-## GitHub repo 的 anchor 规则
+## Anchor rules for GitHub repos
 
-### 强匹配
+### Strong match
 
-| transcript 出现 | 匹配到 |
+| transcript mentions | matches |
 |---|---|
-| README 里出现过的标题 / 段落 | 那一节 README 引用的图（看 `manifest.json::readme_refs`） |
-| 截图标题 / alt 文本 | "我们打开设置页" → 匹配 alt="Settings page" 的图 |
-| 模块名 / 文件名 | "看 dashboard 这个组件" → 匹配 `dashboard.png` 或 `docs/dashboard/*` 路径下的图 |
-| 命令 / 终端输出 | 匹配 terminal screenshot（如有） |
+| a heading / paragraph that appears in the README | the figure that README section references (check `manifest.json::readme_refs`) |
+| screenshot title / alt text | "let's open the settings page" → matches the figure with alt="Settings page" |
+| module name / filename | "look at the dashboard component" → matches `dashboard.png` or a figure under `docs/dashboard/*` |
+| command / terminal output | matches a terminal screenshot (if any) |
 
-### 弱匹配
+### Weak match
 
-| transcript 出现 | hint |
+| transcript mentions | hint |
 |---|---|
-| logo / brand 名 | 仅在开头介绍段 / 结尾感谢段使用 logo |
-| "demo" / "演示" | 用 README 头部 hero 截图 |
+| logo / brand name | only use the logo in the intro / closing-thanks segment |
+| "demo" | use the README's top hero screenshot |
 
 ---
 
-## 视觉效果决策
+## Visual-effect decisions
 
-按图的内容和 beat 节奏选效果（避免裸铺图，禁止全部用同一种）：
+Pick the effect by figure content and beat rhythm (avoid bare figure dumps; never use the same one for everything):
 
-| 场景 | 推荐效果 | 实现位置 |
+| case | recommended effect | implementation location |
 |---|---|---|
-| 论文 figure，单图，重点是某个区域 | **Crop + Ken Burns zoom-in**（focal point 慢推） | `scene_image_zoom.tsx.tpl` |
-| 论文 figure，整图都重要（架构图、流程图） | **Ken Burns slow pan**（左到右扫一遍） | 同上，调参数 |
-| 两张图对比（before / after） | **Side-by-side**，错位入场 | HTML grid |
-| repo 截图，需要指出某个 UI 元素 | **Annotate overlay**（红框 + 箭头 + 文字标签） | Remotion，`<svg>` 在图上方 |
-| repo 多张截图，连续 walkthrough | **Card transition**，淡入下一张 | HTML keyframe |
-| 配 logo 出场 | **Pop + scale up**（弹簧） | Remotion `spring` |
-| 论文公式 page (`--with-pages`) | **Page 滚动**（translateY），到公式停 + 红框 highlight 公式 | Remotion 手写 |
-| 论文一段文字引用 (`--with-pages`) | **Highlight rect**：整页 dim 到 50%，文字 bbox 处保留 100% 亮度 | Remotion `<svg mask>` |
+| paper figure, single image, focus on one region | **Crop + Ken Burns zoom-in** (slow push toward focal point) | `scene_image_zoom.tsx.tpl` |
+| paper figure, whole image matters (architecture/flow diagram) | **Ken Burns slow pan** (sweep left to right) | same, tune params |
+| two figures compared (before / after) | **Side-by-side**, staggered entrance | HTML grid |
+| repo screenshot, need to point at a UI element | **Annotate overlay** (red box + arrow + text label) | Remotion, `<svg>` above the image |
+| repo multiple screenshots, continuous walkthrough | **Card transition**, fade in the next one | HTML keyframe |
+| logo entrance | **Pop + scale up** (spring) | Remotion `spring` |
+| paper equation page (`--with-pages`) | **Page scroll** (translateY), stop at the equation + red-box highlight it | hand-written Remotion |
+| paper text quote (`--with-pages`) | **Highlight rect**: dim the whole page to 50%, keep the text bbox at 100% brightness | Remotion `<svg mask>` |
 
-### Ken Burns 参数建议
+### Ken Burns parameter recommendations
 
-10s scene + 1280×720 canvas 用：
+For a 10s scene + 1280×720 canvas use:
 - start: `scale(1.0) translate(0,0)`
 - end:   `scale(1.15) translate(-40px, -20px)` (subtle drift toward focal point)
-- easing: `easeOutQuart` (50% 进度时已完成 70% 动画 — 给观众缓冲看清楚)
+- easing: `easeOutQuart` (70% of the animation is done by 50% progress — gives viewers a buffer to see clearly)
 
-公式 zoom 用：
-- start: 整页可见
+For equation zoom use:
+- start: full page visible
 - mid (t=2s): zoom 4× to formula region
-- hold mid 6s (让用户读)
-- end (t=10s): 微微 zoom 5× 强调
+- hold mid 6s (let the user read)
+- end (t=10s): zoom slightly to 5× for emphasis
 
-### Annotate 模式
+### Annotate mode
 
-红框 + 箭头 + 标签建议在 figure 上方画一个 `<svg>` 绝对定位层。三色调色板：
-- `#ee6c4d` (warn) — 主标注
-- `#6ec1e4` (accent) — 次标注  
-- `#f4d35e` (highlight) — 引导线
+For red box + arrow + label, draw an absolutely-positioned `<svg>` layer above the figure. Three-color palette:
+- `#ee6c4d` (warn) — primary annotation
+- `#6ec1e4` (accent) — secondary annotation
+- `#f4d35e` (highlight) — guide lines
 
 ---
 
-## 不带音频锚句但想用图的场景
+## Cases with no audio anchor but you still want a figure
 
-少数情况：用户给了图但音频里没明确提及 — 比如 logo 出场、章节封面页。这时候允许使用，但**必须**标记 `[no anchor — decorative]` 在 `beat_plan.md` 里，且只能用于：
+A few cases: the user gave a figure but the audio never explicitly mentions it — e.g. a logo entrance, a chapter cover page. These are allowed, but you **must** tag `[no anchor — decorative]` in `beat_plan.md`, and only use them for:
 
-- 开场片头（logo / paper title page）
-- 章节分割卡（论文 section header page）
-- 收尾致谢（合作者照片等）
+- Opening title card (logo / paper title page)
+- Chapter divider card (paper section-header page)
+- Closing acknowledgements (collaborator photos, etc.)
 
-正文叙述段坚决不允许"凭感觉塞图"。
+In body narration passages, "shoving in a figure by feel" is strictly disallowed.

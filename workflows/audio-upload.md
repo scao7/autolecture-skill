@@ -1,74 +1,74 @@
-# Workflow · 用户录音上传 → 视频（音频驱动）
+# Workflow · User uploads audio recording → video (audio-driven)
 
-**入口**：用户给一段**音频**（mp3/wav/m4a）。**音频驱动**：人声是时间轴脊柱。
-先转录 + 修错字 + 判断要不要重构讲稿，这决定音频是「保留原声直接剪」还是「voice clone 重合成」。
+**Entry**: user gives a piece of **audio** (mp3/wav/m4a). **Audio-driven**: the human voice is the spine of the timeline.
+Transcribe first + fix typos + decide whether to restructure the script — this determines whether the audio is "keep the original audio and cut directly" or "voice clone re-synthesis".
 
 ---
 
-## 步骤
+## Steps
 
-### 0 · 用 SKILL.md 入口已确认的运行模式 + 定 voice clone 处理
+### 0 · Use the run mode already confirmed at the SKILL.md entry + decide voice clone handling
 
-> **运行模式已在 SKILL.md 入口 ① 定下**(mcp / zip)——这里不再问。下面 voice clone 决策按模式分支。
+> **The run mode was already set at SKILL.md entry ①** (mcp / zip) — don't ask again here. The voice clone decision below branches by mode.
 
-**voice clone 处理决策**(这条 workflow 特有,决定后面 `\say` 写不写 `voice=mine`):
+**Voice clone handling decision** (specific to this workflow, decides whether later `\say` writes `voice=mine`):
 
-- **mcp**:看 `whoami`(或相关工具)给的用户信息里有没有 voice sample;有 → plan 写"所有 `\say` 带 `voice=mine`";拿不到就同 zip 问用户。
-- **zip**:`AskUserQuestion` 三选一:① 是,用我的克隆声(全片 `voice=mine`) ② 否 / 不清楚(默认 speaker) ③ 我要保留原声不做 TTS(走 `\audio[start,end]{}` + `\caption{}` 路径,不用 `\say` TTS)。
+- **mcp**: check whether the user info from `whoami` (or related tools) has a voice sample; yes → plan writes "all `\say` carry `voice=mine`"; if you can't get it, ask the user as in zip.
+- **zip**: `AskUserQuestion`, three choices: ① yes, use my cloned voice (whole video `voice=mine`) ② no / unsure (default speaker) ③ I want to keep the original audio, no TTS (go the `\audio[start,end]{}` + `\caption{}` path, no `\say` TTS).
 
-决策写进 `<work>/beat_plan.md`,**整片所有 `\say` 用同一种处理,不能 mix**。每个动作的两模式 fallback 全表见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
+Write the decision into `<work>/beat_plan.md`. **The whole video's `\say` uses one and the same handling, no mixing.** For the full fallback table of both modes per action, see [`../reference/runtime-modes.md`](../reference/runtime-modes.md).
 
-### 1 · 准备 + 转录
+### 1 · Prepare + transcribe
 ```bash
 WORK=/tmp/autolecture_$(date +%s); mkdir -p $WORK/{scenes,figures}
 python3 scripts/transcribe.py --audio <user.m4a> --out <work>/<user>.m4a.whisper.json
 ```
-[`scripts/transcribe.py`](../scripts/transcribe.py) 用 `whisper.base` 加词级时间戳，落 sidecar JSON。
+[`scripts/transcribe.py`](../scripts/transcribe.py) uses `whisper.base` with word-level timestamps, landing a sidecar JSON.
 
-### 2 · 修转录错字（HARD BAN #3）
-读 [`../reference/typo-fixes.md`](../reference/typo-fixes.md)（「高撕」→「高斯」、「政策画像」→「正则项」）+ 本次新发现的，逐句过一遍，修正映射记到 `<work>/transcript_corrections.md`。**原音频不动**，错字只影响视觉文字 / 重构稿。
+### 2 · Fix transcription typos (HARD BAN #3)
+Read [`../reference/typo-fixes.md`](../reference/typo-fixes.md) ("高撕"→"高斯", "政策画像"→"正则项") + any newly found this run, go through sentence by sentence, record the correction mapping in `<work>/transcript_corrections.md`. (Those Whisper-typo example pairs are kept in Chinese on purpose — they're example values.) **The original audio is untouched**; typos only affect the visual text / restructured script.
 
-### 3 · 分析：纯净口播 还是 随口录的想法？→ 决定是否重构
-- **纯净口播**（成品播客 / 有意识录的连贯旁白）→ 大概率**不重构**，保留原声。
-- **随口录的想法**（跑题、卡顿、重复、想到哪说到哪）→ 大概率**需要重构**讲稿。
-- 含糊就用 AskUserQuestion 问用户：「保留你的原声直接剪辑，还是让我把内容重新组织、用你的声音（voice clone）重讲一遍？」
+### 3 · Analyze: clean voiceover or casually-recorded thoughts? → decide whether to restructure
+- **Clean voiceover** (finished podcast / deliberately recorded coherent narration) → most likely **no restructure**, keep the original audio.
+- **Casually-recorded thoughts** (off-topic, stumbling, repetitive, thinking out loud) → most likely **needs restructuring** the script.
+- If unclear, ask the user via AskUserQuestion: "Keep your original audio and cut it directly, or let me reorganize the content and re-narrate it in your voice (voice clone)?"
 
 ---
 
-## 路线 A · 不重构（保留原声，直接剪）
+## Route A · No restructure (keep original audio, cut directly)
 
-音频保持原状，按内容自然分段，用 `\audio[start=,end=]{}` 剪辑原音频，给每段配画面。
+Audio stays as-is; segment naturally by content, use `\audio[start=,end=]{}` to cut the original audio, assign a visual to each segment.
 
-1. 在 transcript 里搜每段**锚句**（开头特征字），用 [`scripts/find_beats.py`](../scripts/find_beats.py) 定位 start 时间戳；相邻锚句之间 = 一个 view 的 `[start, end]`。**不重组叙事**，按音频自然顺序切。
-2. 组装：
+1. Search each segment's **anchor sentence** (the distinctive opening words) in the transcript, use [`scripts/find_beats.py`](../scripts/find_beats.py) to locate the start timestamp; between adjacent anchor sentences = one view's `[start, end]`. **Don't reorganize the narrative**, cut in the audio's natural order.
+2. Assemble:
    ```latex
    \begin{view}
-     \audio[start=32.34, end=37.48]{<user>.m4a}   % 原声片段
-     \htmlFile{scenes/scene_02.html}               % 配的画面
+     \audio[start=32.34, end=37.48]{<user>.m4a}   % original audio segment
+     \htmlFile{scenes/scene_02.html}               % the assigned visual
    \end{view}
    ```
 
-## 路线 B · 重构（voice clone + TTS 重讲）
+## Route B · Restructure (voice clone + TTS re-narration)
 
-把内容重新组织成清晰叙事，用**用户自己的声音克隆**重新合成（不是默认 TTS 嗓音），再按 TTS 时长切分写画面。
+Reorganize the content into a clear narrative, re-synthesize with the **user's own voice clone** (not the default TTS voice), then cut and write visuals by TTS duration.
 
-1. **重写讲稿**：基于修正后的 transcript 重组叙事（清晰开头/中间/结尾，删冗余、补连接句）。
-2. **voice clone**：让用户在 <https://autolecture.ai/account> 注册声音样本（把这段录音当样本），之后 `\say[voice=mine]{...}` 就用克隆的嗓音合成。在交付说明里写明这一步（没注册样本会回落到默认嗓音）。
-3. **按 TTS 时长切分写画面**：每段重写后的稿子 = 一个 view 的 `\say[voice=mine]{}`；真实时长在编译时由 TTS + audio-first 锁定（见 [`../reference/audio-first.md`](../reference/audio-first.md)），估算只为排版。
+1. **Rewrite the script**: re-organize the narrative from the corrected transcript (clear beginning/middle/end, cut redundancy, add connective sentences).
+2. **voice clone**: have the user register a voice sample at <https://autolecture.ai/account> (use this recording as the sample); afterwards `\say[voice=mine]{...}` synthesizes with the cloned voice. State this step in the delivery note (without a registered sample it falls back to the default voice).
+3. **Cut and write visuals by TTS duration**: each rewritten segment = one view's `\say[voice=mine]{}`; real durations are locked at compile time by TTS + audio-first (see [`../reference/audio-first.md`](../reference/audio-first.md)), estimates are only for layout.
    ```latex
    \begin{view}
-     \say[voice=mine]{<重写后的这一段>}
+     \say[voice=mine]{<this rewritten segment>}
      \remotionFile{scenes/scene_02.tsx}
    \end{view}
    ```
 
 ---
 
-## 配套素材（两条路线都适用，如果有）
-用户同时给了 PDF / repo / 图 → 按 [`../reference/figure-matching.md`](../reference/figure-matching.md) match 进画面，每张图**必须有 anchor 句证据**写进 `beat_plan.md`（HARD BAN #8）。想在画面里**展示 PDF 原件** → 叠 [`pdf-paper.md`](pdf-paper.md) 的 Flow B 镜头。
+## Supporting assets (applies to both routes, if any)
+The user also gave a PDF / repo / images → match them into the visuals per [`../reference/figure-matching.md`](../reference/figure-matching.md); each figure **must have anchor-sentence evidence** written into `beat_plan.md` (HARD BAN #8). To **show the original PDF** in the visuals → layer in [`pdf-paper.md`](pdf-paper.md)'s Flow B shots.
 
-## 选引擎 + 手写 scene
-读 [`../reference/engine-routing.md`](../reference/engine-routing.md)；画面扣每段口播的重点和意思。统一调色板 [`../reference/palette.md`](../reference/palette.md)，每个 scene 独立设计、≤60s、命名 `scene_NN_label.<ext>`。
+## Pick engine + hand-write scene
+Read [`../reference/engine-routing.md`](../reference/engine-routing.md); the visual hooks each segment's voiceover point and meaning. Unified palette [`../reference/palette.md`](../reference/palette.md), each scene designed independently, ≤60s, named `scene_NN_label.<ext>`.
 
-## README + 交付
-`<audio>.m4a` + `.whisper.json` 列入包含项（路线 A 字幕对齐要用）。然后 → **交付：见 [`_delivery.md`](_delivery.md)**。
+## README + delivery
+`<audio>.m4a` + `.whisper.json` go into the included items (Route A needs them for caption alignment). Then → **delivery: see [`_delivery.md`](_delivery.md)**.

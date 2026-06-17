@@ -1,126 +1,127 @@
-# Workflow · 简单指令 / 文字稿 → 讲解视频（音频驱动）
+# Workflow · Simple instruction / text script → explainer video (audio-driven)
 
-**入口**：用户只给**一句指令 / 一个选题 / 一段文字稿**，没有录音、没有 PDF、没有实拍。
-旁白用 TTS 合成（`\say{}`），视觉全部手写源码。
+**Entry**: user gives only **one instruction / one topic / a text script** — no recording, no PDF, no live-action.
+Narration is synthesized via TTS (`\say{}`); all visuals are hand-written source.
 
-> **音频驱动 + 先定稿**：这条流程没有现成音频，所以**第一件事是把口播稿写出来给用户定稿**——口播稿是整片的时间轴脊柱，定下来之后所有画面才围着它排。
+> **Audio-driven + finalize first**: this flow has no existing audio, so **the first thing to do is write the voiceover script and get the user to finalize it** — the voiceover script is the spine of the whole video's timeline; only after it's locked do all the visuals arrange around it.
 
-> 配套素材（GitHub repo 截图 / 本地图片）是 opt-in 增量，见 [`../reference/figure-matching.md`](../reference/figure-matching.md)。用户其实给了 PDF / 录音 / 实拍 → 回路由走对应 workflow。
+> Supporting assets (GitHub repo screenshots / local images) are an opt-in increment, see [`../reference/figure-matching.md`](../reference/figure-matching.md). If the user actually gave a PDF / recording / live-action → route back to the corresponding workflow.
 
 ---
 
-## 步骤
+## Steps
 
-### 0 · 用 SKILL.md 入口已确认的运行模式 + 定 voice clone 处理
+### 0 · Use the run mode already confirmed at the SKILL.md entry + decide voice clone handling
 
-> **运行模式已在 SKILL.md 入口 ① 定下**(mcp / zip),这里不再问。
+> **The run mode was already set at SKILL.md entry ①** (mcp / zip); don't ask again here.
 
-**voice clone 决策**(text-to-lecture 默认走 TTS,必须做):
-- **mcp**:看 `whoami` 给的用户信息有没有 voice sample;有 → "所有 `\say[voice=mine]`";拿不到就同 zip 问用户。
-- **zip**:`AskUserQuestion` 二选一:① 是,用我的克隆声(全片 `voice=mine`) ② 否 / 不清楚(默认 speaker)。
+**Voice clone decision** (text-to-lecture defaults to TTS, must be done):
+- **mcp**: check whether the user info from `whoami` has a voice sample; yes → "all `\say[voice=mine]`"; if you can't get it, ask the user as in zip.
+- **zip**: `AskUserQuestion`, two choices: ① yes, use my cloned voice (whole video `voice=mine`) ② no / unsure (default speaker).
 
-决定写进 `<work>/script.md` 的 plan 备注里。整片所有 `\say` 同一种处理。mcp / zip 两模式每个动作对照见 [`../reference/runtime-modes.md`](../reference/runtime-modes.md)。
+Write the decision into the plan notes in `<work>/script.md`. The whole video's `\say` uses one and the same handling. For the per-action correspondence of the mcp / zip modes, see [`../reference/runtime-modes.md`](../reference/runtime-modes.md).
 
-### 1 · 准备工作目录
+### 1 · Prepare work directory
 ```bash
 WORK=/tmp/autolecture_$(date +%s); mkdir -p $WORK/{scenes,figures}
 ```
 
-### 2 · 写口播稿 → 交用户改 / 批准（**硬性 gate，先停一下**）
-- 把用户的指令 / 选题 / 素材，写成一份**完整、分段的口播稿**（每段就是后面一个 view 的 `\say{}` 内容）。
-- 写成 `<work>/script.md`，分段编号，每段下面附**一句话画面意图**（这一拍要让观众看到什么）。
-- **必须把口播稿发给用户，等用户修改 / 批准后再继续。** 不要跳过这一步直接去做画面——稿子是时间轴，稿子没定，画面白做。
-- 用户改了 → 更新 `script.md` 再确认一次；明确批准 → 进入下一步。
+### 2 · Write the voiceover script → hand to user for edits / approval (**hard gate, stop here first**)
+- Turn the user's instruction / topic / material into a **complete, segmented voiceover script** (each segment is the `\say{}` content of a later view).
+- Write it to `<work>/script.md`, numbered by segment, with a **one-line visual intent** under each segment (what this beat should make the viewer see).
+- **You MUST send the voiceover script to the user and wait for edits / approval before continuing.** Don't skip this step and go straight to the visuals — the script is the timeline; if the script isn't locked, the visuals are wasted work.
+- User edits → update `script.md` and confirm once more; explicit approval → proceed to the next step.
 
-### 3 · 估算每段时长（TTS 时间）→ 切 view
-- 口播稿定稿后，按字数粗估每段 TTS 时长（中文约 4–5 字/秒；英文约 2.5 词/秒）记到 beat_plan，用于规划。
-- **真实时长在编译时由 TTS + audio-first 自动锁定**（`\say{}` 的实际语音长度驱动该 view，视觉用 audio-first 自适应，见 [`../reference/audio-first.md`](../reference/audio-first.md)）——所以估算只为排版，不必精确。
-- 5–12 段，每段 30–90 秒；输出 `<work>/beat_plan.md`：
+### 3 · Estimate each segment's duration (TTS time) → cut views
+- After the script is finalized, roughly estimate each segment's TTS duration by character count (Chinese ~4–5 chars/sec; English ~2.5 words/sec) and note it in beat_plan, for planning.
+- **Real durations are auto-locked at compile time by TTS + audio-first** (the actual speech length of `\say{}` drives that view, visuals adapt via audio-first, see [`../reference/audio-first.md`](../reference/audio-first.md)) — so the estimate is only for layout and need not be precise.
+- 5–12 segments, each 30–90 seconds; output `<work>/beat_plan.md`:
 
 ```markdown
-| # | 估时 | 口播要点 | 视觉引擎 | 设计要点 |
+| # | Est. | Voiceover point | Visual engine | Design note |
 |---|------|----------|----------|----------|
-| 1 | ~22s | 抛出反直觉问题 | Remotion | 问题文字 typewriter + 大问号脉冲 |
-| 2 | ~38s | 三大核心数字   | HTML     | 三柱卡片错位反转 |
+| 1 | ~22s | Pose a counter-intuitive question | Remotion | Question text typewriter + large question-mark pulse |
+| 2 | ~38s | Three core numbers   | HTML     | Three-column cards stagger-reverse |
 ```
 
-### 4 · main.tex 骨架先行（**写任何视觉之前**，搭好就立刻落云端）
+### 4 · main.tex skeleton first (**before writing any visuals**, build it and immediately land it in the cloud)
 
-> 血泪教训：main.tex 拖到最后才组装 = 项目长期不是「可编译态」，中途断线 / resume 时一片散沙。**骨架要在写第一个 scene 源码之前就建好并提交。**
+> Hard-won lesson: leaving main.tex assembly to the end = the project is long not in a "compilable state", and a mid-flow disconnect / resume leaves a pile of scraps. **The skeleton must be built and committed before you write the first scene's source.**
 
-1. **先搭骨架**：把 step 3 切好的每一拍都建成一个 `\begin{view}…\end{view}`，view 数量 = 镜数（一个不少）。每个 view 里先放：
-   - **占位 `\say{}`**：直接填**定稿口播原文切分后的那一段**（旁白从第一秒就在 view 里，不是草稿里漂着）。
-   - **占位 `\htmlFile{}`**（或对应引擎文件）：指向一个**还没写的**文件名 `scenes/scene_NN_label.html`。
-2. **`\say` 与画面始终同居**：`\say{}` 从一开始就和它的 `\htmlFile{}`（或 `\manimFile`/`\remotionFile`）放在**同一个 view** 里，旁白与画面绑死，永远不脱钩。后面只换文件内容、不重切旁白。
-3. **立刻提交 / 写云端**：
-   - **mcp 模式**：`write_file("main.tex", <完整骨架>)` —— 这时云端已是一个**所有 view 齐全、可编译**的项目（文件还没写，编译会就该块报错，但结构在）。之后逐 view 填，走 [`_delivery.md`](_delivery.md) 路径 A 的**增量循环**（每填好一个 scene 文件 → `write_file` → 当场 `compile` 那一块）。
-   - **zip 模式**：把骨架写进 `<work>/main.tex`，scene 文件逐个补齐到 `<work>/scenes/`。
+1. **Build the skeleton first**: turn every beat cut in step 3 into one `\begin{view}…\end{view}`, view count = beat count (not one fewer). In each view first put:
+   - **Placeholder `\say{}`**: fill in **the corresponding segment of the finalized voiceover text** (narration is in the view from second one, not floating in a draft).
+   - **Placeholder `\htmlFile{}`** (or the corresponding engine file): point at a **not-yet-written** filename `scenes/scene_NN_label.html`.
+2. **`\say` and visual always co-located**: from the start, `\say{}` sits in the **same view** as its `\htmlFile{}` (or `\manimFile`/`\remotionFile`), narration and visual bound together, never decoupled. Later you only swap file contents, never re-cut narration.
+3. **Commit / write to cloud immediately**:
+   - **mcp mode**: `write_file("main.tex", <full skeleton>)` — at this point the cloud already holds a project with **all views present and compilable** (the files aren't written yet, so compiling will error on those blocks, but the structure is there). Then fill view by view, following the **incremental loop** of [`_delivery.md`](_delivery.md) path A (each finished scene file → `write_file` → immediately `compile` that block).
+   - **zip mode**: write the skeleton into `<work>/main.tex`, fill in scene files one by one under `<work>/scenes/`.
 
-骨架示例（占位旁白 + 占位文件名，view 全建齐）：
+Skeleton example (placeholder narration + placeholder filenames, all views built):
 ```latex
-\title{<标题>}
+\title{<title>}
 \aspect{16:9}
-\style{<风格>}
+\style{<style>}
 \begin{videotex}
 \begin{view}[title=Scene_01_Hook]
-  \say{<定稿口播第 1 段原文>}
-  \htmlFile{scenes/scene_01_hook.html}   % 文件待写
+  \say{<finalized voiceover segment 1 text>}
+  \htmlFile{scenes/scene_01_hook.html}   % file to be written
 \end{view}
 \begin{view}[title=Scene_02_...]
-  \say{<定稿口播第 2 段原文>}
-  \htmlFile{scenes/scene_02_....html}    % 文件待写
+  \say{<finalized voiceover segment 2 text>}
+  \htmlFile{scenes/scene_02_....html}    % file to be written
 \end{view}
 ...
 \end{videotex}
 ```
 
-> 命名纪律：**一个项目只用一套前缀**（如全 `scene_NN_`）；替换旧版顺手 `delete_file`/归档，别让两套命名并存——resume 时「哪套正式」全靠 main.tex 的 view 顺序说了算。
+> Naming discipline: **one project uses one prefix only** (e.g. all `scene_NN_`); when replacing an old version `delete_file`/archive it as you go, don't let two naming schemes coexist — on resume, "which is the official one" rests entirely on the view order in main.tex.
 
-### 5 · 按「口播的重点和意思」给每段配画面 + 选引擎
-读 [`../reference/engine-routing.md`](../reference/engine-routing.md)。**画面要扣这一拍口播的重点和意思**，不是泛泛配图：提到数字 → 大字反转；提到流程 → 卡片渐变；提到坍塌 → 点云收缩。速记：大字/数字/打字机 → Remotion；标题/卡片/表格/流程 → HTML；3D/公式/几何 → Manim；人脸/风景 → `\image[engine=gemini]`。**默认首选 HTML**（最快最稳）。
+### 5 · Assign visuals to each segment by "the voiceover's point and meaning" + pick an engine
+Read [`../reference/engine-routing.md`](../reference/engine-routing.md). **The visual must hook this beat's voiceover point and meaning**, not generic illustration: mentions a number → large-type reversal; mentions a process → card cross-fade; mentions collapse → point cloud contracting. Quick reference: large type / numbers / typewriter → Remotion; titles / cards / tables / flows → HTML; 3D / formulas / geometry → Manim; faces / scenery → `\image[engine=gemini]`. **Default to HTML** (fastest, most stable).
 
-> **引擎一致性 > 引擎多样性**：engine-routing 别误读成「必须 ≥3 种引擎，否则像 PPT」。**静态堆叠**才像 PPT；**成体系的动效手绘 SVG / HTML 不算 PPT**。要做统一风格（如全片手绘 storybook）就可以全用一种引擎，视觉一致性优先于引擎数量。手绘风见 [`../reference/hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md)。
+> **Engine consistency > engine variety**: don't misread engine-routing as "must use ≥3 engines or it looks like PowerPoint". **Static stacking** is what looks like PowerPoint; **systematic motion-graphic hand-drawn SVG / HTML is not PowerPoint**. To do a unified style (e.g. whole-video hand-drawn storybook) you may use a single engine throughout; visual consistency outranks engine count. For hand-drawn style see [`../reference/hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md).
 
-### 5b · 寓言体 / 类比讲技术 → 先批映射表（**仅当是这类选题**）
+### 5b · Fable / analogy to explain tech → get the mapping table approved first (**only if this kind of topic**)
 
-如果选题是「拿一个故事 / 寓言去类比讲技术」（如拿城镇市集讲 MCP），**画面动手前**严格按这个 gating 顺序，每一关拿到「可以」再过下一关：
+If the topic is "use a story / fable to explain tech by analogy" (e.g. use a town market to explain MCP), **before touching visuals** strictly follow this gating order; get "OK" at each gate before passing to the next:
 
-| 关 | 产出 | 为什么先批它 |
+| Gate | Output | Why approve it first |
 |---|------|------|
-| ① **映射表** | 每个技术概念 ↔ 故事元素**一一对应**的表 | 对应关系错了，后面全白做；先把「server=店铺 / tool=货架 / token=通行牌」钉死 |
-| ② **故事主线** | 串起所有映射的一条叙事线（口播稿据此切 view） | 主线定了 view 顺序才定 |
-| ③ **一个视觉样张** | 走下面 step 6 的样张 gating | 风格签字 |
-| ④ **量产** | 填满剩余镜 | 只在前三关都「可以」之后 |
+| ① **Mapping table** | A table mapping each tech concept ↔ story element **one-to-one** | If the mapping is wrong, everything after is wasted; nail down "server=shop / tool=shelf / token=pass" first |
+| ② **Story throughline** | One narrative line stringing all mappings together (the voiceover script cuts views off this) | View order is only set once the throughline is set |
+| ③ **One visual sample** | Run through the sample gating in step 6 below | Style sign-off |
+| ④ **Mass production** | Fill the remaining views | Only after the first three gates are all "OK" |
 
-映射表示例：
+Mapping table example:
 ```markdown
-| 技术概念 | 故事元素 |
+| Tech concept | Story element |
 |---|---|
-| MCP server   | 百巧城里的一家店铺 |
-| tool         | 店里货架上的一件器物 |
-| OAuth token  | 进城的通行牌 |
+| MCP server   | a shop in the Town of a Hundred Crafts |
+| tool         | an implement on a shelf in the shop |
+| OAuth token  | a pass to enter the town |
 ```
+(Example values above kept in English; original used a Chinese town/MCP fable — translated to keep it readable.)
 
-### 6 · 样张先行 gating（**强制 —— 任何多镜任务**）
+### 6 · Sample-first gating (**mandatory — any multi-view task**)
 
-> 最值钱的一步：**先只端到端做 1 个样张镜，签字，再量产剩余镜。** 全量先做完再发现风格不对 = 十几镜返工 + 一次全量编译白烧。
+> The most valuable step: **make just 1 sample view end-to-end, get sign-off, then mass-produce the rest.** Doing the full set first only to find the style is wrong = a dozen-view redo + a wasted full compile.
 
-1. **挑一个代表镜**（角色 / 元素最全的那一拍），**只手写它一个** scene 文件，填进对应 view。
-2. **渲染**：mcp 模式 `compile` 只渲这一块；zip 模式本地走样张编译。
-3. **抽帧确认**：`fetch_frame` 拉这一镜的 PNG 看实际效果。三个反直觉点见 [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md)（`scene_id` 传该 block 的 `content_hash`、结果落盘大 JSON、PNG base64 藏在 `inner["image"]["data"]`）。
-4. **拿签字**：把样张帧发给用户（或自检）拿到明确「可以」。**没签字不准量产。**
-5. 签字后 → 才进 step 7 批量手写剩余镜。
+1. **Pick a representative view** (the beat with the most characters / elements), **hand-write just that one** scene file, fill it into its view.
+2. **Render**: mcp mode `compile` renders just that block; zip mode does a local sample compile.
+3. **Frame-check**: `fetch_frame` to pull the PNG of this view and see the actual result. The three counter-intuitive points are in [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md) (`scene_id` takes that block's `content_hash`, the result lands as a big JSON, the PNG base64 hides in `inner["image"]["data"]`).
+4. **Get sign-off**: send the sample frame to the user (or self-check) and get an explicit "OK". **No sign-off, no mass production.**
+5. After sign-off → only then enter step 7 to batch hand-write the remaining views.
 
-### 7 · 手写每个 scene 的源码（样张签字后才量产）
-骨架在 [`../templates/`](../templates/)。**严格手写，不调用 LLM 出代码**（HARD BAN #1）。统一调色板 [`../reference/palette.md`](../reference/palette.md) + 字体栈；**audio-first 铁律**见 [`../reference/audio-first.md`](../reference/audio-first.md)；每个 scene 独立设计（HARD BAN #2）、≤60s、命名 `scene_NN_label.<ext>`（沿用 step 4 骨架里那套前缀，一套到底）。
+### 7 · Hand-write each scene's source (mass-produce only after sample sign-off)
+Skeletons in [`../templates/`](../templates/). **Strictly hand-write, do not call the LLM to emit code** (HARD BAN #1). Unified palette [`../reference/palette.md`](../reference/palette.md) + font stack; the **audio-first iron rule** is in [`../reference/audio-first.md`](../reference/audio-first.md); each scene designed independently (HARD BAN #2), ≤60s, named `scene_NN_label.<ext>` (carry over the prefix from the step 4 skeleton, one scheme throughout).
 
-- **手绘 storybook 风**（全片统一手绘 SVG/HTML）：技法见 [`../reference/hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md)（描边 `pathLength=1` + `draw` keyframe、`feTurbulence` 钢笔抖动、bob/sway 持续微动、cream/navy/tan 品牌色）。
-- **`\manimFile` 必须 `[retime=true]`**；`\say` ≤400 字、默认不烧字幕（要 `\say[burn=on]` 才烧）。
-- 每填好一个 scene 文件，mcp 模式立刻 `write_file` + 当场 `compile` 那一块（增量循环，见 [`_delivery.md`](_delivery.md)），别攒到最后。
+- **Hand-drawn storybook style** (whole-video unified hand-drawn SVG/HTML): technique in [`../reference/hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md) (stroke `pathLength=1` + `draw` keyframe, `feTurbulence` pen jitter, bob/sway continuous micro-motion, cream/navy/tan brand colors).
+- **`\manimFile` must be `[retime=true]`**; `\say` ≤400 chars, captions off by default (need `\say[burn=on]` to burn).
+- Each finished scene file: in mcp mode immediately `write_file` + `compile` that block on the spot (incremental loop, see [`_delivery.md`](_delivery.md)), don't pile it up to the end.
 
-> **开发期单镜预览、最后才全量编译**：全量编译又贵又慢（每镜现合成中文 TTS + 实时录屏，十几镜首编可达数百 credits）。开发期只渲改动的那一块；全量编译前**先给用户提示成本量级**。单镜预览的具体做法（子 tex 必须是 body 片段、临时把 main.tex 覆写成单 view 文档）见 [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md)。
+> **Single-view preview during dev, full compile only at the end**: full compile is expensive and slow (each view synthesizes TTS + real-time records on the fly; the first full compile of a dozen views can hit hundreds of credits). During dev only render the block you changed; **warn the user of the cost magnitude before a full compile**. For the specifics of single-view preview (the sub-tex must be a body fragment, temporarily overwrite main.tex into a single-view document) see [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md).
 
-### 8 · 全量编译 + README + 交付
-样张签字、剩余镜全部填完 → 整片编译（mcp 模式单块都在 step 7 渲过的话基本全命中缓存）。用 [`../templates/README.md.tpl`](../templates/README.md.tpl) 写「怎么用」。然后 → **交付：见 [`_delivery.md`](_delivery.md)**。
+### 8 · Full compile + README + delivery
+Sample signed off, remaining views all filled → compile the whole video (in mcp mode, if every block was rendered in step 7, this step basically all hits cache). Use [`../templates/README.md.tpl`](../templates/README.md.tpl) to write the "how to use". Then → **delivery: see [`_delivery.md`](_delivery.md)**.
 
-> **resume / 续传**：对话被打断后重连，**第一个动作必须是 `get_snapshot`**，以云端项目实际文件 + `main.tex` 为唯一真相；summary / 记忆里的「已全部写好」只当线索，逐个 `read_file` 核对。详见 [`../reference/resume-checklist.md`](../reference/resume-checklist.md)。
+> **resume / continuation**: after a conversation is interrupted and reconnected, **the first action must be `get_snapshot`**, taking the cloud project's actual files + `main.tex` as the single source of truth; treat "everything already written" in the summary / memory only as a clue, and verify with `read_file` one by one. See [`../reference/resume-checklist.md`](../reference/resume-checklist.md).

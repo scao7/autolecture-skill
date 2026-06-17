@@ -1,121 +1,121 @@
-# 编译 / 预览 / 抽帧 — 坑速查
+# Compile / Preview / Frame-grab — gotcha cheat sheet
 
-开发期不要全量编译。这一页固化「单镜预览 / fetch_frame 解码 / 编译成本 / 缓存失效」四个坑。
-违反的后果：烧一堆 credits、抽帧抽不出来、改个分辨率全片重渲。
+Don't do full compiles during development. This page nails down four gotchas: single-view preview, fetch_frame decoding, compile cost, and cache invalidation.
+Cost of ignoring it: burn a pile of credits, fail to grab frames, re-render the whole video just to change resolution.
 
-> 适用：**mcp** 模式（有 `get_snapshot` / `compile` / `fetch_frame` 工具）。zip 模式没这些工具，跳过。
+> Applies to: **mcp** mode (has `get_snapshot` / `compile` / `fetch_frame` tools). zip mode lacks these tools — skip.
 
 ---
 
-## 1. 单镜预览 — 没有原生入口，靠覆写 main.tex
+## 1. Single-view preview — no native entry point, override main.tex
 
-AutoLecture **没有**「只编译第 N 镜」的入口。开发期想单看某一镜，唯一办法是
-**临时把 main.tex 覆写成一个只含那一个 view 的文档**，编译，看完再恢复。
+AutoLecture has **no** "compile only view N" entry point. To preview a single view during development, the only way is to
+**temporarily override main.tex with a document containing just that one view**, compile, inspect, then restore.
 
-⚠️ 子 tex（`\input{}` 进来的片段）**必须是 body 片段**：
-- 不能带 preamble（`\title` / `\aspect` / `\style` / `\voice`）。
-- 不能带 `\begin{videotex}` / `\end{videotex}`。
-- 里头就是裸的 `\begin{view}...\end{view}`。
+⚠️ Child tex (the fragments pulled in via `\input{}`) **must be body fragments**:
+- No preamble (`\title` / `\aspect` / `\style` / `\voice`).
+- No `\begin{videotex}` / `\end{videotex}`.
+- Just a bare `\begin{view}...\end{view}` inside.
 
-所以不能直接编译一个子 tex，得套一层完整文档。步骤：
+So you can't compile a child tex directly — you have to wrap it in a full document. Steps:
 
-1. **先备份**真正的 main.tex（`get_snapshot` 先存一份内容，或本地留副本）。
-2. **覆写 main.tex** 成一个单 view 文档（preamble 照抄原片，body 只留目标镜）：
+1. **Back up** the real main.tex first (`get_snapshot` to save its content, or keep a local copy).
+2. **Override main.tex** with a single-view document (copy the preamble from the real video; body keeps only the target view):
    ```latex
    \title{preview}
-   \aspect{16:9}                 % 跟正式片一致，别在这里改分辨率(见第 4 节)
-   \style{...原片同款...}
-   \voice{...原片同款...}
+   \aspect{16:9}                 % match the real video, don't change resolution here (see section 4)
+   \style{...same as the real video...}
+   \voice{...same as the real video...}
 
    \begin{videotex}
    \begin{view}[title=scene_07]
-     \say{这一镜的旁白原文照抄}
+     \say{narration for this view, copied verbatim}
      \htmlFile{scenes/hd_07.html}
    \end{view}
    \end{videotex}
    ```
-   用 `write_file` / `edit_file` 写回 main.tex。
-3. `compile` → `get_status` 等完 → `fetch_frame` 看帧（见第 2 节）。
-4. **看完立刻把 main.tex 恢复**成备份的全片版本。别把单镜文档留在云端当正式片
-   （resume 时会把它误当真相——见 SKILL.md「真相在云端」铁律）。
+   Write it back to main.tex with `write_file` / `edit_file`.
+3. `compile` → `get_status` until done → `fetch_frame` to inspect frames (see section 2).
+4. **Restore main.tex immediately after** to the backed-up full-video version. Don't leave the single-view document in the cloud as the real video
+   (resume will mistake it for the truth — see SKILL.md "the truth lives in the cloud" rule).
 
-> 迭代多镜时：每改一镜，覆写 → 编 → 抽帧 → 恢复，循环。比全量编译省 90%+ credits。
+> When iterating on multiple views: per view, override → compile → frame-grab → restore, loop. Saves 90%+ credits vs a full compile.
 
 ---
 
-## 2. fetch_frame — 三个反直觉点，照做
+## 2. fetch_frame — three counterintuitive points, follow them
 
-`fetch_frame` 抽某一镜某一时刻的 PNG。三个坑全都会让你抽空：
+`fetch_frame` grabs a PNG at a given moment of a given view. Three gotchas each cause empty grabs:
 
-### (a) scene_id 传的是 `content_hash`，不是 view 的 title
+### (a) scene_id takes the `content_hash`, not the view's title
 
-`fetch_frame` 的 scene_id 参数要传**那个 block 的 `content_hash`**，
-从 `get_snapshot` 的 `blocks[].content_hash` 取。**不是** view 的 `title`，
-**不是** 序号，**不是** 文件名。
+`fetch_frame`'s scene_id parameter must be **that block's `content_hash`**,
+taken from `get_snapshot`'s `blocks[].content_hash`. **Not** the view's `title`,
+**not** the index, **not** the filename.
 
 ```python
-snap = get_snapshot(project_id)        # MCP 工具
-block = snap["blocks"][6]              # 第 7 镜（0-based）
-scene_id = block["content_hash"]       # ← 传这个
+snap = get_snapshot(project_id)        # MCP tool
+block = snap["blocks"][6]              # view 7 (0-based)
+scene_id = block["content_hash"]       # ← pass this
 # fetch_frame(scene_id=scene_id, t=1.5)
 ```
 
-### (b) 返回是超大 JSON，被落盘到 `/mnt/user-data/tool_results/...json`
+### (b) The return is a huge JSON, written out to `/mnt/user-data/tool_results/...json`
 
-PNG 是 base64 塞在 JSON 里的，体积很大，工具结果不会内联回对话，而是
-**落盘**到 `/mnt/user-data/tool_results/<某哈希>.json`。你拿到的是这个**文件路径**。
+The PNG is base64 stuffed inside the JSON, which is large, so the tool result isn't inlined back into the conversation but is
+**written out** to `/mnt/user-data/tool_results/<some-hash>.json`. What you get is this **file path**.
 
-### (c) base64 在 `inner["image"]["data"]`，得自己解码成 .png
+### (c) The base64 lives in `inner["image"]["data"]`, you decode it to .png yourself
 
-落盘的 JSON 结构是套了两层的。外层是个 list，第 0 个 element 的 `text` 字段
-是一个 **JSON 字符串**，再 `json.loads` 一次才到 `inner`，PNG base64 在
-`inner["image"]["data"]`。解码：
+The written-out JSON is doubly nested. The outer level is a list; element 0's `text` field
+is a **JSON string** that needs another `json.loads` to reach `inner`, where the PNG base64 lives at
+`inner["image"]["data"]`. Decode:
 
 ```python
 import json, base64, pathlib
 
-results_json = "/mnt/user-data/tool_results/<那个文件>.json"   # fetch_frame 返回的路径
+results_json = "/mnt/user-data/tool_results/<that file>.json"   # path returned by fetch_frame
 outer = json.loads(pathlib.Path(results_json).read_text())
-inner = json.loads(outer[0]["text"])          # 注意：再 loads 一层
-png_b64 = inner["image"]["data"]              # base64 字符串
+inner = json.loads(outer[0]["text"])          # note: loads one more level
+png_b64 = inner["image"]["data"]              # base64 string
 pathlib.Path("/tmp/frame.png").write_bytes(base64.b64decode(png_b64))
-# 然后 Read /tmp/frame.png 看图
+# then Read /tmp/frame.png to view it
 ```
 
-解出来 Read 那张 .png 就能肉眼检查这一镜渲成什么样。
+Once decoded, Read that .png to eyeball how this view rendered.
 
 ---
 
-## 3. 编译成本量级 — 编前必须提示
+## 3. Compile cost magnitude — must warn before compiling
 
-全量编译又贵又慢：**每镜现合成中文 TTS + 1080p 实时录屏**，成本随旁白长度、
-分辨率上升。参考量级：
+A full compile is expensive and slow: **per view it synthesizes Chinese TTS + records 1080p in real time**, cost scaling with narration length and
+resolution. Reference magnitudes:
 
-| 规模 | 首次全量编译成本 |
+| Scale | First full-compile cost |
 |---|---|
-| 17 镜（每镜 TTS + 1080p 录屏） | ≈ **375 credits** |
+| 17 views (TTS + 1080p recording each) | ≈ **375 credits** |
 
-**单镜** ≈ 全量 / 镜数，量级小得多 → 所以开发期单镜迭代。
+**Single view** ≈ full / view-count, much smaller in magnitude → so iterate view-by-view during development.
 
-规则：
-1. **开发期只用单镜预览**（第 1 节）迭代视觉 / 时序。
-2. **只在最后做一次全量编译**出片。
-3. **每次全量 compile 前，先跟用户提示成本量级**（按镜数 × 旁白长度 × 分辨率估），
-   别闷头烧 credits。
+Rules:
+1. **During development, only use single-view preview** (section 1) to iterate on visuals / timing.
+2. **Do a full compile only once at the end** to produce the render.
+3. **Before each full compile, warn the user about the cost magnitude** (estimate by views × narration length × resolution),
+   don't blindly burn credits.
 
 ---
 
-## 4. 缓存随 canvas 失效 — 别在迭代中途改分辨率
+## 4. Cache invalidates with the canvas — don't change resolution mid-iteration
 
-`\aspect{}` 的分辨率在**编译期逐 block 生效**：每个 view block 原生渲染到目标尺寸
-（manim / html / remotion 都按这个 canvas 出帧）。
+`\aspect{}`'s resolution **takes effect per-block at compile time**: each view block natively renders to the target size
+(manim / html / remotion all emit frames at this canvas).
 
-所以**改分辨率 = 改了 canvas = 所有 block 的 content_hash 变 = 全量 cache miss = 全片重渲**。
-没有「只把分辨率切一下、复用旧帧」这种事。
+So **changing resolution = changing the canvas = every block's content_hash changes = full cache miss = re-render the whole video**.
+There's no such thing as "just switch the resolution and reuse old frames."
 
-规则：
-- 分辨率（`\aspect{16:9, 1080p}` 里的 `1080p`）**一开始就定死**，迭代期别动。
-- 单镜预览（第 1 节）里的 `\aspect` 也保持跟正式片一致——在预览文档里改分辨率，
-  既污染缓存、预览又跟成片不一致。
-- 真要出 4K，等内容定稿后再把 `\aspect{16:9, 4k}` 改上去做**那一次**全量 compile，
-  接受全片重渲的成本。
+Rules:
+- Fix the resolution (the `1080p` in `\aspect{16:9, 1080p}`) **from the start**, don't touch it during iteration.
+- Keep the `\aspect` in single-view preview (section 1) consistent with the real video too — changing resolution in the preview document
+  both pollutes the cache and makes the preview inconsistent with the finished video.
+- If you really want 4K, lock the content first, then bump `\aspect{16:9, 4k}` and do **that one** full compile,
+  accepting the cost of re-rendering the whole video.

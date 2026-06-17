@@ -1,42 +1,42 @@
-# 引擎选择决策树
+# Engine selection decision tree
 
-每个 beat 必须挑一个视觉引擎。下面是按内容类型的路由表。
+Every beat must pick one visual engine. Below is the routing table by content type.
 
-## 快速决策
+## Quick decision
 
 ```
-beat 内容是什么？
-├── 数学公式 / 几何 / 3D 点云 / 函数图像 / 物理模拟
+What is the beat's content?
+├── Math formulas / geometry / 3D point cloud / function plots / physics simulation
 │   → Manim (.py)
-├── 大数字反转 / 时间轴动画 / 多阶段过渡 / 文字打字机
+├── Big-number flip / timeline animation / multi-stage transitions / typewriter text
 │   → Remotion (.tsx)
-├── 论文标题 / 卡片 / 对比布局 / 流程图 / 表格 / 概念图
+├── Paper title / cards / comparison layout / flowchart / table / concept diagram
 │   → HTML (.html)
-├── 真人照片 / 上传插画
+├── Real photo / uploaded illustration
 │   → \imageFile{path}
-└── AI 风格插画（水彩 / 卡通 / 概念图）
+└── AI-style illustration (watercolor / cartoon / concept art)
     → \image[engine=gemini]{prompt}
 ```
 
-## 详细规则
+## Detailed rules
 
-### Manim（数学/几何）
+### Manim (math/geometry)
 
-**用**：
-- 3D 点云、向量场、矩阵变换
-- 数学公式 morph（`TransformMatchingTex`）
-- 几何证明（拆分正方形、画切线）
-- 函数图像、参数曲线
-- 重力/物理模拟（小球落地）
+**Use for**:
+- 3D point clouds, vector fields, matrix transforms
+- Math formula morphs (`TransformMatchingTex`)
+- Geometric proofs (splitting a square, drawing tangents)
+- Function plots, parametric curves
+- Gravity/physics simulation (a ball dropping)
 
-**避免**：
-- 文字密集场景（Manim 渲文字慢且丑）
-- 复杂动画 + 大量元素（容易超 300s timeout）
-- 简单卡片布局（HTML 写起来简单 100 倍）
+**Avoid for**:
+- Text-heavy scenes (Manim renders text slowly and ugly)
+- Complex animation + many elements (easily hits the 300s timeout)
+- Simple card layouts (HTML is 100x simpler to write)
 
-**渲染时长粗算**：480p15 默认 → 渲染时长 ≈ scene 时长 × 3-8 倍。**70 秒以上的 Manim scene 必须拆**，或者改用 Remotion DOM。
+**Render-time rough estimate**: 480p15 default → render time ≈ scene duration × 3-8x. **Manim scenes over 70 seconds must be split**, or switch to Remotion DOM.
 
-**标准头**：
+**Standard header**:
 ```python
 from manim import Scene, ThreeDScene, Circle, ... 
 from manim import PI, ORIGIN, UP, DOWN, RIGHT, LEFT, WHITE, BLUE, RED, YELLOW, GREEN
@@ -48,22 +48,22 @@ class LectureScene(Scene):  # or ThreeDScene
         self.wait(2.0)
 ```
 
-### Remotion（精细动画）
+### Remotion (fine-grained animation)
 
-**用**：
-- 大数字 reveal（"48×" 反转）
-- 文字打字机 / blur → sharp
-- 多阶段过渡（多个 `interpolate` + `spring`）
-- L2 距离折线 + 标记尖峰
-- 计数器（6 → 5 → 4 → 1）
-- 撕胶带 / 拼图等抽象时间轴动画
-- 大量粒子 DOM 模拟（替代 Manim 3D 点云的轻量化方案）
+**Use for**:
+- Big-number reveal (a "48×" flip)
+- Typewriter text / blur → sharp
+- Multi-stage transitions (multiple `interpolate` + `spring`)
+- L2-distance line chart + marked peaks
+- Counters (6 → 5 → 4 → 1)
+- Abstract timeline animations like tape-tearing / jigsaw
+- Heavy particle DOM simulation (a lightweight alternative to Manim 3D point clouds)
 
-**避免**：
-- 静态卡片（HTML 更短）
-- 数学严谨度要求（用 Manim）
+**Avoid for**:
+- Static cards (HTML is shorter)
+- Math-rigor requirements (use Manim)
 
-**必须导出**：
+**Must export**:
 ```tsx
 export const FPS = 30;
 export const WIDTH = 1280;
@@ -72,21 +72,21 @@ export const DURATION_FRAMES = N * FPS;
 export const Comp: React.FC = () => { ... };
 ```
 
-### HTML（卡片/布局/文字）
+### HTML (cards/layout/text)
 
-**用**：
-- 论文标题卡（title + authors + arxiv）
-- 三柱对比、four-card grid
-- 流程图、时间线
-- 公式卡（带颜色注释）
-- 引言 / 总结 / 致谢
-- 简单 SVG 图标
+**Use for**:
+- Paper title card (title + authors + arxiv)
+- Three-column comparison, four-card grid
+- Flowcharts, timelines
+- Formula card (with color annotations)
+- Intro / summary / acknowledgments
+- Simple SVG icons
 
-**避免**：
-- 复杂时间轴（要求精确 frame-level 控制时用 Remotion）
-- 真 3D（用 Manim）
+**Avoid for**:
+- Complex timelines (use Remotion when you need precise frame-level control)
+- True 3D (use Manim)
 
-**标准头**：
+**Standard header**:
 ```html
 <!DOCTYPE html>
 <html lang="zh"><head><meta charset="UTF-8"><title>...</title>
@@ -107,47 +107,47 @@ export const Comp: React.FC = () => { ... };
 </body></html>
 ```
 
-### `\imageFile`（上传素材）
+### `\imageFile` (uploaded assets)
 
-**用**：
-- 有具体的真人照片、文档截图、产品图
-- 用户预先准备好的插画
+**Use for**:
+- You have a specific real photo, document screenshot, or product image
+- Illustration the user prepared in advance
 
-**注意**：
-- 文件放 assets/figures/ 下
-- 用 `[fit=contain]` 避免裁切
+**Note**:
+- Put files under assets/figures/
+- Use `[fit=contain]` to avoid cropping
 
-### `\image`（AI 生图，Gemini）
+### `\image` (AI image generation, Gemini)
 
-**用**：
-- 需要原创插画但不想找设计师 / 自己画
-- 风格统一（搭配 `\style{}` 用）
-- 一次性概念图（"一个想 idea 的女孩"、"卡通鸭子在水边"）
+**Use for**:
+- You need original illustration but don't want to find a designer / draw it yourself
+- Consistent style (paired with `\style{}`)
+- One-off concept art ("a girl having an idea", "a cartoon duck by the water")
 
-**避免**：
-- 含具体文字（AI 出文字常错）
-- 需要数据准确性（图表）
+**Avoid for**:
+- Containing specific text (AI often gets text wrong)
+- Requiring data accuracy (charts)
 
-**调用方式**：
+**How to call**:
 ```latex
 \image[engine=gemini, aspect=16:9]{a thoughtful person at a desk, soft watercolor}
 ```
 
-## 一致性原则
+## Consistency principle
 
-**视觉一致性优先于引擎数量。** "像 PPT" 的真正病因是**静态堆叠** —— 一屏屏不动的卡片硬切，而不是 "只用了一种引擎"。
+**Visual consistency takes priority over engine count.** The real disease of "looks like PPT" is **static stacking** — hard cuts between motionless cards, not "only used one engine".
 
-- **静态堆叠才像 PPT**：没有入场动效、没有持续微动作、镜与镜之间生切。
-- **成体系的动效手绘 SVG/HTML 不算 PPT**：描边 `draw`、填充淡入、`feTurbulence` 钢笔抖动、`bob/sway/spin` 微动作连成一套语言，整片就是一部会动的绘本，不是幻灯片。
+- **Only static stacking looks like PPT**: no entrance animation, no continuous micro-motion, hard cuts between views.
+- **A systematic animated hand-drawn SVG/HTML is not PPT**: stroke `draw`, fill fade-in, `feTurbulence` pen jitter, and `bob/sway/spin` micro-motion form one coherent language, and the whole video becomes a moving storybook, not slides.
 
-所以：为了统一风格（比如全程手绘 storybook），**主动收敛到单一引擎是合理且鼓励的**。别为了凑 "≥3 种引擎" 而牺牲视觉一致性。具体技法见 [`hand-drawn-storybook.md`](hand-drawn-storybook.md)。
+So: to unify style (e.g. hand-drawn storybook throughout), **deliberately converging on a single engine is reasonable and encouraged**. Don't sacrifice visual consistency just to hit "≥3 engines". For specific techniques see [`hand-drawn-storybook.md`](hand-drawn-storybook.md).
 
-下面这张分布表只是 **混合讲解片** 的默认起点，不是硬指标 —— 风格统一的项目（手绘绘本、纯 Manim 数学课）可以并且应该偏离它：
+The distribution table below is only a default starting point for a **mixed explainer video**, not a hard target — style-unified projects (hand-drawn storybook, pure-Manim math lessons) can and should deviate from it:
 
-| 引擎 | 占比 |
+| Engine | Share |
 |---|---|
-| HTML | 50-60% (主力，便宜稳) |
-| Remotion | 25-35% (大数字、时间轴、抽象动画) |
-| Manim | 5-15% (只在数学/3D 真的需要时) |
-| `\image` AI | 0-5% (人物/插画) |
-| `\imageFile` | 0-10% (具体素材) |
+| HTML | 50-60% (workhorse, cheap and stable) |
+| Remotion | 25-35% (big numbers, timelines, abstract animation) |
+| Manim | 5-15% (only when math/3D is genuinely needed) |
+| `\image` AI | 0-5% (people/illustration) |
+| `\imageFile` | 0-10% (specific assets) |

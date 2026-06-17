@@ -1,214 +1,340 @@
 ---
 name: autolecture-skill
-version: 0.10.1
-description: 把用户素材端到端做成可在 AutoLecture (https://autolecture.ai) 编译出片的项目。入口先定运行模式,再问用户**自由创作还是去模版商城找专用模版**(商城里每个题材是服务端按需交付的创作指令卡,任何连了 MCP 的 agent 都能用);自由创作再按主输入类型分流到对应 workflow：纯文字稿→生成讲解; 录音/播客→转录配画面; PDF 论文→讲解(抽figure) 或 展示原件(react-pdf真页+zoom+定位高亮,借鉴 pdf2video); 实拍视频→叠加透明动效(over=) 或 录屏+头像Tella式画中画(录制产出 screen/camera 两条原始轨,画中画用模板编排可后期调); 参考视频→视觉复刻(抽帧串读动效照着写scene)。所有视觉手写 \\manimFile/\\htmlFile/\\remotionFile 源码(不走 LLM 提示词),AI 仅用于 \\image[engine=gemini]{} 生图。启动先看有没有 autolecture MCP 工具(连了 mcp.autolecture.ai/mcp 连接器)：有就 mcp 模式直接云端建项目+编译+看帧；没有就问用户用 MCP 还是只产 zip 自己上传(claude.ai 网页端走 zip)。交付两条路径：有 MCP 工具就 MCP 连接器直驱云端编译,否则打包 zip 让用户上传。目标：用户给素材 → 跑完 → out.mp4 + Studio URL。
+version: 0.11.0
+description: Turn the user's material end-to-end into a project that compiles to a finished video in AutoLecture (https://autolecture.ai). At the entry, first set the runtime mode, then ask **freestyle or find a dedicated template in the marketplace** (each genre in the marketplace is a server-delivered authoring card any MCP-connected agent can use); freestyle then routes by primary input type to the matching workflow: plain text/script→generate an explainer; audio/podcast→transcribe + match visuals; PDF paper→explain (extract figures) or showcase the original (react-pdf real pages + zoom + located highlight, à la pdf2video); live-action video→overlay transparent effects (over=) or screencast+avatar Tella-style picture-in-picture (recording yields screen/camera raw tracks, PiP arranged by template, tunable later); reference video→visual replication (extract frames, read the motion, write scenes to match). All visuals are hand-written \manimFile/\htmlFile/\remotionFile source (no LLM prompts); AI is used only for \image[engine=gemini]{} image generation. On start, check whether the autolecture MCP tools are present (the mcp.autolecture.ai/mcp connector): if so, mcp mode builds the project + compiles + inspects frames directly in the cloud; if not, ask the user to use MCP or just produce a zip to upload (claude.ai web goes zip). Two delivery paths: with MCP tools, drive cloud compile directly via the connector; otherwise package a zip for the user to upload. Goal: user gives material → run → out.mp4 + Studio URL.
 ---
 
 # autolecture-skill
 
-把用户的素材变成可立即在 AutoLecture 里点 ▶ Recompile 出片的项目包。
-这个 SKILL.md 是**路由入口** —— 先判断用户要做哪种视频，再打开对应的
-[`workflows/`](workflows/) playbook 执行。
+Turn the user's material into a project package that compiles to a finished video
+the moment they hit ▶ Recompile in AutoLecture. This SKILL.md is the **routing
+entry** — first decide which kind of video the user wants, then open the matching
+[`workflows/`](workflows/) playbook and execute it.
 
-## 核心：一切都是音频驱动
+## Core: everything is audio-driven
 
-和别的 skill 不一样 —— **AutoLecture 项目永远是音频驱动**：旁白 / 人声是整片的
-时间轴脊柱，画面只是配合音频的节奏与含义出现，绝不反过来。无论入口是哪种：
-- **简单指令 / 文字** → 先写口播稿**给用户定稿** → TTS → 按每段口播的时间和含义配画面。
-- **录音** → 转录 + 修错字 → 判断「保留原声直接剪」还是「voice clone 重合成」→ 按音频切分配画面。
-- **视频** → **不做 TTS**，直接用视频自带音频分析、切分 → 叠加特效 或 剪辑结合。
+Unlike other skills — **an AutoLecture project is ALWAYS audio-driven**: the
+narration / voice is the timeline spine of the whole film, and visuals appear only
+to follow the audio's pacing and meaning, never the reverse. Whatever the entry:
+- **Simple instruction / text** → write a voiceover script and **get the user's
+  sign-off** → TTS → match visuals to each segment's timing and meaning.
+- **Audio recording** → transcribe + fix typos → decide "keep the original audio
+  and just cut" vs "re-synthesize with voice clone" → split visuals by the audio.
+- **Video** → **no TTS**: analyze and split by the video's own audio → overlay
+  effects or edit-combine.
 
-所以每条 workflow 的第一步都是「确定音频时间轴」，第二步才是「给每段配画面」。
+So step one of every workflow is "fix the audio timeline", and only step two is
+"match a visual to each segment".
 
-## 何时触发
+## When to trigger
 
-用户说「做个 autolecture 视频 / demo」「我录了段口播做成视频」「我有篇稿子 / 论文 / 项目想做讲解」「剪我这段播客配画面」「在我这段实拍上加点动效」，或直接丢来音频 / 文字 / PDF / 视频文件。
+The user says "make an autolecture video / demo", "I recorded a voiceover, turn it
+into a video", "I have a script / paper / project I want explained", "cut my podcast
+and match visuals", "add some motion over my live footage", or just drops in an
+audio / text / PDF / video file.
 
 ---
 
-## 入口:**开场先定三件事**(一次问到位,workflow 内部不再追问)
+## Entry: **set three things up front** (ask once; workflows never re-ask)
 
-### 入口 ① · 运行模式? → 先看有没有 MCP(**workflow 跑之前必定**)
+### Entry ① · Runtime mode? → check for MCP first (**always, before any workflow**)
 
-**skill 一启动,第一件事是检查你当前有没有 autolecture 的 MCP 工具** —— 连上 `mcp.autolecture.ai/mcp` 连接器后,工具列表里会出现 `create_project` / `write_file` / `edit_file` / `add_asset` / `compile` / `get_status` / `fetch_frame` 这些(前缀视客户端而定,如 `autolecture:compile`)。这是 Claude 自己就能看见的事实,不用跑脚本。
+**The first thing the skill does on start is check whether you currently have the
+autolecture MCP tools** — once the `mcp.autolecture.ai/mcp` connector is attached,
+the tool list shows `create_project` / `write_file` / `edit_file` / `add_asset` /
+`compile` / `get_status` / `fetch_frame` (the prefix depends on the client, e.g.
+`autolecture:compile`). This is a fact Claude can see directly — no script needed.
 
-- **有 MCP 工具** → **mcp 模式**(首选)。Claude 直接用这些工具在云端建项目、写 `main.tex` + scene 文件、上传素材、编译、拉渲出的帧看效果 —— 全程不落本地 zip,一条龙做完,编译挂了能自己 `fetch_frame` 看帧调。
-  **连上后先调一次 `server_info` 做版本对账**：① 返回的 `skill_version_current` 比本 SKILL.md 头部的 `version` 新 → 告诉用户「skill 有新版,跑 `npx skills add scao7/autolecture-skill` 更新(claude.ai 重传 zip)」,然后照常继续——不阻塞本次任务;② 返回的 `dsl_spec_sha` 和本地 `harness/spec/dsl.json` 对不上时,语法以 `get_dsl_spec` 拉到的 **live spec 为准**(bundled dsl.json 只是离线 fallback)。
-  **起步可走模板**:`list_gallery_templates` → 看中哪个就 `get_template_card(slug)` 读填法 → `use_gallery_template(slug)` 克隆成新项目,在它基础上替换占位,比从零写快得多(模板都是编译验证过的真项目)。
-- **没有 MCP 工具** → 用 `AskUserQuestion` 问用户,二选一:
+- **Have the MCP tools** → **mcp mode** (preferred). Claude uses these tools to
+  build the project in the cloud, write `main.tex` + scene files, upload assets,
+  compile, and pull rendered frames to inspect — end to end, nothing dropped to a
+  local zip, and when a compile fails it can `fetch_frame` to debug.
+  **On connect, call `server_info` once for version reconciliation**: ① if the
+  returned `skill_version_current` is newer than this SKILL.md's header `version`,
+  tell the user "the skill has a new version, run `npx skills add
+  scao7/autolecture-skill` to update (on claude.ai re-upload the zip)" — then carry
+  on, don't block this task; ② if the returned `dsl_spec_sha` doesn't match the local
+  `harness/spec/dsl.json`, take the **live spec from `get_dsl_spec`** as truth (the
+  bundled dsl.json is just an offline fallback).
+  **You can start from a template**: `list_gallery_templates` → pick one →
+  `get_template_card(slug)` to read how to fill it → `use_gallery_template(slug)` to
+  clone it into a new project and replace placeholders on top — far faster than
+  writing from scratch (the templates are all compile-verified real projects).
+- **No MCP tools** → ask the user with `AskUserQuestion`, two choices:
 
-  | 选项 | 走哪条 |
+  | Option | Which path |
   |---|---|
-  | **① 用 MCP(推荐)** —— Claude 直接帮你在云端建项目 + 编译 + 看效果,做完给 Studio 链接 | 引导连接器:在你的客户端(Claude.ai / Cursor / Claude Code)Settings → Connectors → Add → 粘 `https://mcp.autolecture.ai/mcp` → 浏览器点批准(OAuth)。连好后让工具刷新 / 重开对话,再启动 skill → 进 **mcp 模式** |
-  | **② 给我 zip,我自己上传** —— 不连任何东西,适合 claude.ai 网页端 / 不想授权的用户 | **zip 模式**:Claude 产出项目 zip,你拖到 [autolecture.ai](https://autolecture.ai) 上传(网页自动识别 main.tex + 注册素材) |
+  | **① Use MCP (recommended)** — Claude builds the project + compiles + inspects in the cloud, hands you a Studio link when done | Guide the connector: in your client (Claude.ai / Cursor / Claude Code) Settings → Connectors → Add → paste `https://mcp.autolecture.ai/mcp` → approve in the browser (OAuth). Once connected, refresh tools / reopen the chat, then start the skill → enter **mcp mode** |
+  | **② Give me a zip, I'll upload it myself** — connect nothing; for claude.ai web / users who don't want to authorize | **zip mode**: Claude produces a project zip, you drag it onto [autolecture.ai](https://autolecture.ai) (the web auto-detects main.tex + registers assets) |
 
-定好模式后 **workflow 内部不再问** —— 每个 workflow 的 step 0 直接照 `mcp / zip` 分支。两种模式每个动作怎么做,对照 [`reference/runtime-modes.md`](reference/runtime-modes.md)。
+With the mode set, **workflows never ask again** — each workflow's step 0 just
+branches on `mcp / zip`. For how each action is done in either mode, see
+[`reference/runtime-modes.md`](reference/runtime-modes.md).
 
-### 入口 ② · 走哪条路? → 自由创作 / 去模版商城
+### Entry ② · Which path? → freestyle / marketplace
 
-定好模式后,问用户这条片子怎么起步(用 `AskUserQuestion` 二选一):
+With the mode set, ask the user how to start this video (use `AskUserQuestion`, two
+choices):
 
-| 选项 | 走哪条 |
+| Option | Which path |
 |---|---|
-| **① 自由创作(freestyle)** —— 我来帮你从零定方案 | 进**入口 ③** 按主输入类型分流到 `workflows/`,**不依赖商城**,基础功能永远可用 |
-| **② 去模版商城找专用模版** —— 按题材挑个验证过的起点 | 走 [`reference/marketplace.md`](reference/marketplace.md):列题材 → 选模版 → 拉创作指令卡 → 克隆起始项目 → 按卡 recipe 接管。**仅 mcp 模式可用**(zip 模式回退 freestyle) |
+| **① Freestyle** — I'll design the approach from scratch | Go to **Entry ③** and route by primary input type into `workflows/`; **no marketplace dependency**, base features always work |
+| **② Find a dedicated template in the marketplace** — pick a verified starting point by genre | Go to [`reference/marketplace.md`](reference/marketplace.md): list genres → pick a template → pull the authoring card → clone the starting project → take over per the card's recipe. **mcp mode only** (zip mode falls back to freestyle) |
 
-- **不确定 / 用户没明确诉求** → 默认 **freestyle**(自由创作能独立工作,最稳)。
-- 选了商城就跳去 `reference/marketplace.md`,**不再走入口 ③ 的主输入分流**——题材卡里已含 recipe。
-- 选了 freestyle 继续往下。
+- **Unsure / no explicit user ask** → default to **freestyle** (it works
+  standalone, most robust).
+- If they pick the marketplace, jump to `reference/marketplace.md` and **skip Entry
+  ③'s input routing** — the genre card already contains the recipe.
+- If they pick freestyle, continue below.
 
-### 入口 ③ · (freestyle)主输入是什么类型? → 选 workflow
+### Entry ③ · (freestyle) What's the primary input type? → pick a workflow
 
-> 仅**自由创作**路径走这步;走了模版商城的直接照卡做,跳过本步。
+> Only the **freestyle** path runs this step; if they went to the marketplace, work
+> from the card and skip this.
 
-**搞清楚用户手上有什么主输入**（看用户给的文件 + 说的话；不明确就用 AskUserQuestion 问）。然后**读对应的 workflow 文件**并照它执行：
+**Figure out what primary input the user has** (look at the files they gave + what
+they said; if unclear, use AskUserQuestion). Then **read the matching workflow file**
+and execute it:
 
-| 用户的主输入 / 诉求 | workflow | 一句话 |
+| User's primary input / ask | workflow | one line |
 |---|---|---|
-| 给一个**参考视频**要"照这个风格做"（YouTube 链接/文件/项目资产） | [`workflows/replicate-style.md`](workflows/replicate-style.md) | 抽帧串读动效 → 手写 scene 复刻视觉语言（YouTube 仅限 Claude Code 本地） |
-| 只有**文字 / 一句指令 / 选题**，无录音 | [`workflows/text-to-lecture.md`](workflows/text-to-lecture.md) | **先写口播稿给用户定稿** → TTS → 按口播配画面 |
-| 一段**录音 / 播客**（mp3/wav/m4a） | [`workflows/audio-upload.md`](workflows/audio-upload.md) | 转录 + 修错字 → 保留原声直接剪 或 voice clone 重合成 |
-| 一份 **PDF 论文** | [`workflows/pdf-paper.md`](workflows/pdf-paper.md) | A 讲解知识(抽 figure) 或 B 展示原件(真页 + zoom + 定位高亮) |
-| 一段**实拍视频** / **录屏 + 头像** | [`workflows/video.md`](workflows/video.md) | 不做 TTS,用原音频切分 → 叠加特效(毛玻璃) / 剪辑结合 / Tella 录屏画中画 |
+| A **reference video** to "make it in this style" (YouTube link / file / project asset) | [`workflows/replicate-style.md`](workflows/replicate-style.md) | extract frames, read the motion → hand-write scenes to replicate the visual language (YouTube only on Claude Code local) |
+| Only **text / a one-line instruction / a topic**, no recording | [`workflows/text-to-lecture.md`](workflows/text-to-lecture.md) | **write a voiceover script and get sign-off** → TTS → match visuals to the voiceover |
+| An **audio recording / podcast** (mp3/wav/m4a) | [`workflows/audio-upload.md`](workflows/audio-upload.md) | transcribe + fix typos → keep original audio and cut, or re-synthesize with voice clone |
+| A **PDF paper** | [`workflows/pdf-paper.md`](workflows/pdf-paper.md) | A: explain the content (extract figures), or B: showcase the original (real pages + zoom + located highlight) |
+| A **live-action video** / **screencast + avatar** | [`workflows/video.md`](workflows/video.md) | no TTS; split by the original audio → overlay effects (frosted glass) / edit-combine / Tella screencast PiP |
 
-要问就用 AskUserQuestion，选项就是上面五类：「① 我给文字 / 选题 ② 我录了音频 / 播客 ③ 我有 PDF 论文 ④ 我有实拍视频 ⑤ 我有参考视频要照着做」。
+To ask, use AskUserQuestion with these five categories: "① I'll give text / a topic
+② I recorded audio / a podcast ③ I have a PDF paper ④ I have live-action video ⑤ I
+have a reference video to follow".
 
-**可叠加**：主输入选一个 workflow 当主线，其它素材作配套 ——
-- 音频 / 文字 + PDF figure / GitHub repo / 本地图 → 主 workflow 里按 [`reference/figure-matching.md`](reference/figure-matching.md) match 进画面。
-- 音频 / 文字 + 想在画面里**展示** PDF 原件 → 叠 [`workflows/pdf-paper.md`](workflows/pdf-paper.md) 的 Flow B 镜头。
-- 任意 + 实拍片段 → 那几镜用 [`workflows/video.md`](workflows/video.md) 的 `over=` 叠加 / 剪辑结合。
+**Stackable**: the primary input picks the main workflow, other material is
+supporting —
+- audio / text + PDF figure / GitHub repo / local image → match into visuals per
+  [`reference/figure-matching.md`](reference/figure-matching.md) inside the main workflow.
+- audio / text + you want to **showcase** a PDF original on screen → stack the Flow B
+  shots from [`workflows/pdf-paper.md`](workflows/pdf-paper.md).
+- anything + live-action clips → those views use the `over=` overlay / edit-combine
+  from [`workflows/video.md`](workflows/video.md).
 
-### 入口 ④ · 然后照常推进
+### Entry ④ · then proceed as usual
 
-模式 + 主输入定好后,就是正常视频流程 —— workflow 里依次跟用户确认:**要做什么**(选题 / 范围)、**手上的素材**(主输入 + 配套 figure / repo / 实拍)、**想要的视觉风格**(调色板二选一:editorial dark 还是 AutoLecture brand)。然后写口播稿 → 配画面 → 交付。
-
----
-
-所有 workflow 最后都汇到同一个交付步骤：[`workflows/_delivery.md`](workflows/_delivery.md)。
-
----
-
-## HARD BANS（所有 workflow 通用 —— 任何时候都别破）
-
-1. **禁止用 LLM 提示词宏**：`\manim{prompt}` / `\html{prompt}` / `\remotion{prompt}` / `\show{}` 一律不准。所有视觉必须是 `\manimFile[retime=true]{path.py}` / `\htmlFile{path.html}` / `\remotionFile{path.tsx}` / `\imageFile{path.png}` / `\image[engine=gemini]{prompt}`（AI 生图允许）。理由：LLM 出代码不稳定，编译失败率高；手写源码 + 缓存命中 = 几秒出片。**`\manimFile` 必带 `[retime=true]`**（2026-05-22 起默认不再自动缩放时长，不加则动画不随音频缩放、末帧冻结）。字幕用 `\caption{}`（`\text` 已废除、`\say[mute]` 已弃用）。
-2. **禁止模板偷懒**：每个 scene 的视觉**必须**按该 view 内容定制设计，不能同一模板填不同文字。
-3. **禁止漏修转录错字**：中文 Whisper 大量同音字错误，必须先建[修正映射表](reference/typo-fixes.md)再用于 headline。**音频内容不动**，错字只影响视觉文字。
-4. **禁止 silent fallback —— 质量优先**：依赖缺失 / 抽取失败 / 素材损坏 → **立即报错给用户**，不输出降级产物。`autolecture_no_silent_fallback` 是这个 skill 的生命线。
-5. **禁止给 `examples/` 提交 AI 生成的样例**（`autolecture_few_shot_human_curated` 规则）。
-6. **禁止裸铺图**：从 PDF / repo 抽出的图必须包装至少一种动态（zoom / crop / annotate / side-by-side / scroll）。
-7. **禁止从 repo 拉超过 50MB 素材**：`clone_github_assets.py` sparse-checkout 只拉图片，超阈值跳过 + 警告。
-8. **图素材 match 必须有锚句证据**：每张图标到哪个 view，要在 `beat_plan.md` 写明 transcript 里触发匹配的原句（防凭感觉塞图）。
-9. **禁止默认抽 PDF 整页栅格**：`extract_pdf_figures.py` 默认 figures-only；只有显式做「文字 highlight / 公式 zoom / 整页 scroll」才用 `--with-pages`。
-10. **音频时长驱动视觉**：绝不反向假设视觉时长决定 scene 时长。三引擎 audio-first 写法见 [`reference/audio-first.md`](reference/audio-first.md) —— 写任何 scene 前必读。
-11. **禁止预剪 / 预拼素材 —— 剪辑全用 .tex 表达**：**绝不**在外面用 ffmpeg / 剪辑软件把原始素材切片、拼接、重排、变速、加转场后再丢进项目。素材**原片整个**作 asset，所有剪辑都用 VideoTeX 声明：
-    - **选段 / 切镜** → `\video[start=, end=]{原片.mp4}` / `\audio[start=, end=]{原片.mp4}`（编译器从原片取那个时间窗,原片不动）。
-    - **排序 / 拼接** → view 的先后顺序（manifest 按序 concat）。
-    - **转场** → `\fade` / view 边界，不要把转场烧进素材。
-
-    理由：P1 **LaTeX 是唯一真相**、P2 **没有 GUI 漂移** —— 剪辑是 .tex 里**可改、可预览、非破坏性**的字符（预览即导出）。预剪素材 = 把剪辑决策烧死在文件里、绕过 .tex，违反整套架构。（唯一例外:原片实在过大时可先粗剪到一个工作区间当 asset,但**精剪仍写在 .tex 里**。）
-12. **resume = 云端为唯一真相**：任何继续 / resume 任务的**第一个动作必须是 `get_snapshot`**,以云端实际文件 + `main.tex` 的 view 顺序为准。summary / journal / 记忆里的文件清单只当**线索**,逐个 `read_file` 核对真身;**别信「已全部写好」**。理由：compaction summary 会点名错文件(废弃草稿、缺镜、命名打架),凭它接手会改错那套。详见 [`reference/resume-checklist.md`](reference/resume-checklist.md)。
-13. **样张先行(强制)**：任何**多镜任务先端到端做 1 个样张并签字**(建项目 → 写 1 镜 → 编译 → `fetch_frame` 看帧 → 用户说「可以」),**再批量**剩余镜。理由：样张返工成本是 1 镜,量产后返工是 N 镜;最值钱的一步。
-14. **一个项目一套命名前缀 + 替换即清理孤儿**：一个项目只用一套 scene 命名前缀(如 `hd_*`),**替换旧版时顺手 `delete_file` / `move_file` 归档**,不留混版孤儿文件。`main.tex` 的 view 顺序(或 `MANIFEST.md`)是**当前正式镜次的唯一清单**。理由：多套前缀并存 = resume 时得靠考古猜「哪套正式」。
-15. **`main.tex` 骨架先行**：先建**全部 view 的可编译骨架**(每 view 先放占位 `\say` + `\htmlFile`)并立刻提交,**再逐镜填**;全程保持可编译 / 有序 / 可恢复态。**`\say` 与对应画面放同一 view**(别让旁白只躺在草稿里,否则 resume 得照原文重切)。
-16. **`\manimFile` 必带 `[retime=true]`;`\say` ≤400 字、默认不烧字幕**(要 `burn=on` 才烧)。理由(retime)：2026-05-22 起默认不再自动缩放时长,不加则动画不随音频缩放、末帧冻结。(此条与 ban 1 呼应,resume / 批量量产时尤其容易漏。)
-17. **禁止「全写完再编译」—— 每写一个 view 当场编译**：`compile` 是增量的(没改的块全走缓存,只渲新块),所以写 1 镜 → `write_file` → 当场 `compile(wait_seconds=60)` → 看 `block_errors` → 修好 → 下一镜,**成本和最后一次性编译完全一样,但错误一次只来一个**。批量写完再编译 = N 个块的报错一起砸进对话 + 调试时上下文已耗尽("conversation too long" 直接死会话,已写未编译的东西全没验证)。**上下文卫生**配套：scene 代码写进 `write_file` 就别再在正文里复述;改文件用 `edit_file` 别整文件重写;`fetch_frame` 只在编译报错或关键视觉验证时取 1-2 帧,图片极耗上下文。
+With mode + primary input set, it's the normal video flow — the workflow confirms
+with the user in order: **what to make** (topic / scope), **the material on hand**
+(primary input + supporting figures / repo / footage), **the visual style they want**
+(pick one palette: editorial dark or AutoLecture brand). Then write the voiceover
+script → match visuals → deliver.
 
 ---
 
-## 两种运行模式 ── 每条 workflow 第 0 步先判定
+All workflows converge on the same delivery step:
+[`workflows/_delivery.md`](workflows/_delivery.md).
 
-skill 支持两种用户场景,看 Claude 当前有没有 autolecture MCP 工具:
+---
 
-| 模式 | 触发 | 能做 |
+## HARD BANS (apply to every workflow — never break, ever)
+
+1. **No LLM-prompt macros**: `\manim{prompt}` / `\html{prompt}` / `\remotion{prompt}`
+   / `\show{}` are all forbidden. Every visual must be `\manimFile[retime=true]{path.py}`
+   / `\htmlFile{path.html}` / `\remotionFile{path.tsx}` / `\imageFile{path.png}` /
+   `\image[engine=gemini]{prompt}` (AI image generation is allowed). Reason: LLM-
+   generated code is unstable with a high compile-failure rate; hand-written source +
+   cache hits = a render in seconds. **`\manimFile` MUST carry `[retime=true]`** (since
+   2026-05-22 duration is no longer auto-scaled by default; without it the animation
+   won't scale to the audio and the end frame freezes). Use `\caption{}` for subtitles
+   (`\text` is retired, `\say[mute]` is deprecated).
+2. **No template shortcuts**: each scene's visual **must** be custom-designed to that
+   view's content — never fill different text into the same template.
+3. **Never skip fixing transcription typos**: Chinese Whisper produces many homophone
+   errors; build the [correction map](reference/typo-fixes.md) first before using text
+   in a headline. **The audio is untouched** — typos only affect on-screen text.
+4. **No silent fallback — quality first**: missing dependency / failed extraction /
+   corrupt asset → **error to the user immediately**, never ship a degraded artifact.
+   `autolecture_no_silent_fallback` is this skill's lifeline.
+5. **Never commit AI-generated samples to `examples/`** (the
+   `autolecture_few_shot_human_curated` rule).
+6. **No bare image dumps**: a figure extracted from a PDF / repo must be wrapped in at
+   least one motion (zoom / crop / annotate / side-by-side / scroll).
+7. **Never pull more than 50MB of assets from a repo**: `clone_github_assets.py`
+   sparse-checkout pulls images only, skips + warns above the threshold.
+8. **Image matches need anchor-phrase evidence**: for every image-to-view mapping,
+   write the triggering source sentence from the transcript in `beat_plan.md` (so
+   images aren't placed by gut feel).
+9. **Never rasterize whole PDF pages by default**: `extract_pdf_figures.py` is
+   figures-only by default; use `--with-pages` only when explicitly doing "text
+   highlight / formula zoom / full-page scroll".
+10. **Audio duration drives the visual**: never reverse-assume the visual's duration
+    sets the scene duration. For the three-engine audio-first patterns see
+    [`reference/audio-first.md`](reference/audio-first.md) — read before writing any scene.
+11. **No pre-cutting / pre-stitching assets — all editing is expressed in .tex**:
+    **never** use ffmpeg / editing software outside the project to slice, stitch,
+    reorder, time-stretch, or add transitions to raw material before dropping it in.
+    The raw material goes in **whole** as an asset; all editing is declared in VideoTeX:
+    - **clip selection / cut** → `\video[start=, end=]{raw.mp4}` / `\audio[start=, end=]{raw.mp4}`
+      (the compiler takes that time window from the raw file; the raw is untouched).
+    - **ordering / stitching** → the view sequence (the manifest concats in order).
+    - **transitions** → `\fade` / view boundaries; don't burn transitions into the asset.
+
+    Reason: P1 **LaTeX is the single source of truth**, P2 **no GUI drift** — editing
+    is **editable, previewable, non-destructive** characters in the .tex (preview ===
+    export). Pre-cut assets = editing decisions burned into the file, bypassing the
+    .tex, breaking the whole architecture. (Sole exception: if the raw is truly huge
+    you may rough-cut to a working range as the asset, but **the fine cut still lives in
+    the .tex**.)
+12. **resume = the cloud is the single source of truth**: the **first action** of any
+    continue / resume task **must be `get_snapshot`**, taking the cloud's actual files +
+    `main.tex`'s view order as truth. A summary / journal / remembered file list is only
+    a **lead**; `read_file` each one to verify the real thing; **don't trust "it's all
+    written"**. Reason: a compaction summary will name wrong files (abandoned drafts,
+    missing views, naming clashes), and taking over on it would edit the wrong set. See
+    [`reference/resume-checklist.md`](reference/resume-checklist.md).
+13. **Sample first (mandatory)**: for any **multi-view task, do ONE sample end-to-end
+    and get sign-off** (build project → write 1 view → compile → `fetch_frame` to check →
+    user says "looks good") **before batching** the rest. Reason: a sample rework costs
+    1 view, post-batch rework costs N views; the most valuable step.
+14. **One naming prefix per project + clean up orphans on replace**: a project uses one
+    scene naming prefix (e.g. `hd_*`); **when replacing an old version, `delete_file` /
+    `move_file` to archive it** so no mixed-version orphan files linger. `main.tex`'s view
+    order (or `MANIFEST.md`) is the **single list of the current official views**. Reason:
+    multiple coexisting prefixes = on resume you'd have to guess "which set is official".
+15. **`main.tex` skeleton first**: build a **compilable skeleton of ALL views** (each
+    view first gets a placeholder `\say` + `\htmlFile`) and commit it immediately, **then
+    fill view by view**; keep it compilable / ordered / recoverable throughout. **Put
+    `\say` and its visual in the same view** (don't leave narration only in a draft, or
+    resume has to re-cut from the original text).
+16. **`\manimFile` must carry `[retime=true]`; `\say` ≤400 chars, subtitles off by
+    default** (need `burn=on` to burn). Reason (retime): since 2026-05-22 duration is no
+    longer auto-scaled; without it the animation won't scale to the audio and the end
+    frame freezes. (This echoes ban 1, especially easy to miss on resume / batch.)
+17. **No "write everything then compile" — compile each view as you write it**:
+    `compile` is incremental (unchanged blocks all hit cache, only the new block renders),
+    so write 1 view → `write_file` → `compile(wait_seconds=60)` on the spot → check
+    `block_errors` → fix → next view. **Cost is identical to one final compile, but errors
+    arrive one at a time.** Batch-writing then compiling = N blocks' errors dumped into the
+    chat at once + context already spent on debugging ("conversation too long" kills the
+    session outright, and everything written-but-not-compiled is unverified).
+    **Context hygiene** alongside: once scene code is in `write_file`, don't restate it in
+    the body; edit files with `edit_file`, don't rewrite whole files; use `fetch_frame`
+    only to pull 1-2 frames on a compile error or a key-visual check — images eat context.
+
+---
+
+## Two runtime modes ── decide at step 0 of every workflow
+
+The skill supports two user scenarios, by whether Claude currently has the autolecture
+MCP tools:
+
+| Mode | Trigger | What it does |
 |---|---|---|
-| **mcp**(首选) | 当前工具列表里有 autolecture MCP 工具(连了 `mcp.autolecture.ai/mcp` 连接器) | Claude 直接用 MCP 工具:云端 `create_project`、`write_file`/`edit_file` 写 tex+scene、`add_asset` 传素材、`compile`+`get_status` 编译、`fetch_frame`/`fetch_waveform` 看渲出效果、`list_scene_versions`/`pick_scene_version` 回滚到更好的历史渲染版本、`fetch_asset_frame` 看原始素材的帧(复刻参考/编排检查)、`get_captions` 拿对齐后的逐行字幕(实拍改 `{src}.transcript.txt`、覆盖场景改 `\caption{}`,都即时生效不用重渲) —— 一条龙,编译挂了自己看帧调 |
-| **zip**(默认 fallback) | 没 MCP、用户也不想连(含 **claude.ai 网页端**) | **只产 zip 让用户拖** [autolecture.ai](https://autolecture.ai);Claude 查不了用户状态,改用 `AskUserQuestion` 或保守默认 |
+| **mcp** (preferred) | the current tool list has the autolecture MCP tools (the `mcp.autolecture.ai/mcp` connector is attached) | Claude uses the MCP tools directly: cloud `create_project`, `write_file`/`edit_file` for tex+scene, `add_asset` to upload, `compile`+`get_status`, `fetch_frame`/`fetch_waveform` to inspect renders, `list_scene_versions`/`pick_scene_version` to roll back to a better past render, `fetch_asset_frame` to view raw-asset frames (replication reference / arrangement checks), `get_captions` for the aligned per-line subtitles (edit `{src}.transcript.txt` for footage, `\caption{}` for overlay scenes — both apply instantly without re-render) — end to end, and when a compile fails it inspects frames to debug |
+| **zip** (default fallback) | no MCP, and the user doesn't want to connect (incl. **claude.ai web**) | **produce a zip only** for the user to drag onto [autolecture.ai](https://autolecture.ai); Claude can't query the user's state, so use `AskUserQuestion` or conservative defaults |
 
-**判定(每条 workflow 第 0 步)**:看工具列表有没有 autolecture MCP 工具 —— 有 = **mcp**,没有 = **zip**。这是 Claude 自己看得见的,不跑脚本、不看本地文件。
+**Decide (step 0 of every workflow)**: is there an autolecture MCP tool in the list — yes
+= **mcp**, no = **zip**. This is something Claude sees directly; no script, no local files.
 
-每当 Claude 想建项目 / 写文件 / 编译 / 查用户状态 / 看 cloud 渲出的样子 → 先按模式分支:**mcp 调 MCP 工具,zip 走本地 fallback + 打 zip**(详见 [`reference/runtime-modes.md`](reference/runtime-modes.md))。
+Whenever Claude wants to build a project / write a file / compile / query user state /
+view a cloud render → branch on mode first: **mcp calls the MCP tools, zip uses the local
+fallback + packages a zip** (see [`reference/runtime-modes.md`](reference/runtime-modes.md)).
 
-**别默认有 MCP** —— 很多用户(尤其 claude.ai 网页端)只能走 zip。
+**Don't assume MCP is present** — many users (especially claude.ai web) can only go zip.
 
 ---
 
-## 通用建筑块（被所有 workflow 引用）
+## Common building blocks (referenced by all workflows)
 
-- **两种运行模式速查**（mcp / zip 每个动作怎么做）→ [`reference/runtime-modes.md`](reference/runtime-modes.md)
-- **audio-first timing**（三引擎写法）→ [`reference/audio-first.md`](reference/audio-first.md)
-- **引擎选择决策树**（哪种内容用 Manim / HTML / Remotion / `\image`）→ [`reference/engine-routing.md`](reference/engine-routing.md)
-- **视觉调色板 + 字体栈**（全片一致）— 两套**二选一**,一个项目内只用一套:
-  - [`reference/palette.md`](reference/palette.md) · **editorial dark**（深底 + 海洋蓝）,默认。适合个人 vlog / 论文讲解 / 内容是主角的 editorial 叙事。
-  - [`reference/brand-style.md`](reference/brand-style.md) · **AutoLecture brand**（cream + navy + tan 渐变,跟 [autolecture.ai](https://autolecture.ai) 网站 / Studio / watermark 同一调子）。挂 AutoLecture 招牌时用——官方 demo / teaser / 教程 / 上首页 showcase / 给内测用户的功能片。
-- **VideoTeX 语法速查** → [`reference/dsl-cheatsheet.md`](reference/dsl-cheatsheet.md)（在线文档 <https://autolecture.ai/docs/dsl>）
-- **配套素材 anchor 匹配**（PDF figure / repo 截图 / 本地图）→ [`reference/figure-matching.md`](reference/figure-matching.md)
-- **可借鉴动效技法**（写新 scene 前翻一下）→ [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md)
-- **交付**（MCP 直驱 / zip 上传）→ [`workflows/_delivery.md`](workflows/_delivery.md)
+- **Two runtime modes cheat-sheet** (how each action is done in mcp / zip) →
+  [`reference/runtime-modes.md`](reference/runtime-modes.md)
+- **audio-first timing** (three-engine patterns) → [`reference/audio-first.md`](reference/audio-first.md)
+- **Engine-selection decision tree** (which content uses Manim / HTML / Remotion /
+  `\image`) → [`reference/engine-routing.md`](reference/engine-routing.md)
+- **Visual palette + font stack** (consistent across the film) — two sets, **pick one**,
+  one project uses only one:
+  - [`reference/palette.md`](reference/palette.md) · **editorial dark** (dark ground +
+    ocean blue), default. For personal vlog / paper explainer / editorial narratives where
+    the content is the star.
+  - [`reference/brand-style.md`](reference/brand-style.md) · **AutoLecture brand** (cream +
+    navy + tan gradient, same register as the [autolecture.ai](https://autolecture.ai) site
+    / Studio / watermark). Use when flying the AutoLecture banner — official demo / teaser /
+    tutorial / homepage showcase / feature clip for beta users.
+- **VideoTeX syntax cheat-sheet** → [`reference/dsl-cheatsheet.md`](reference/dsl-cheatsheet.md)
+  (online docs <https://autolecture.ai/docs/dsl>)
+- **Supporting-asset anchor matching** (PDF figure / repo screenshot / local image) →
+  [`reference/figure-matching.md`](reference/figure-matching.md)
+- **Borrowable motion techniques** (skim before writing a new scene) →
+  [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md)
+- **Delivery** (MCP direct-drive / zip upload) → [`workflows/_delivery.md`](workflows/_delivery.md)
 
-工作目录与产出物结构（所有 workflow 共用）：
+Working directory and output structure (shared by all workflows):
 ```
 <work>/
-  main.tex                     # 主 tex（可随项目重命名）
-  <audio>.m4a(.whisper.json)   # 录音模式
-  paper.pdf                    # PDF 模式（作 asset）
-  clip.mp4                     # 实拍模式（作 asset）
-  scenes/  scene_NN_label.{tsx,html,py}   # 手写视觉源码
-  figures/                     # 抽出的 figure / AI 生图 / 上传素材
-  beat_plan.md                 # 叙事结构 + 引擎路由 + anchor 证据
-  transcript_corrections.md    # 转录错字修正表（录音模式）
-  README.md                    # 给用户的「怎么用」
+  main.tex                     # main tex (may be renamed per project)
+  <audio>.m4a(.whisper.json)   # audio mode
+  paper.pdf                    # PDF mode (as asset)
+  clip.mp4                     # live-action mode (as asset)
+  scenes/  scene_NN_label.{tsx,html,py}   # hand-written visual source
+  figures/                     # extracted figures / AI images / uploaded assets
+  beat_plan.md                 # narrative structure + engine routing + anchor evidence
+  transcript_corrections.md    # transcription typo-correction map (audio mode)
+  README.md                    # "how to use" for the user
 ```
 
 ---
 
-## 参考资料
+## Reference
 
-### workflows/（按主输入分流）
-- [`workflows/text-to-lecture.md`](workflows/text-to-lecture.md) — 纯文字 → 生成讲解
-- [`workflows/audio-upload.md`](workflows/audio-upload.md) — 录音 / 播客（rough / polished）
-- [`workflows/pdf-paper.md`](workflows/pdf-paper.md) — PDF 论文（A 讲解 / B 展示原件）
-- [`workflows/video.md`](workflows/video.md) — 实拍视频（叠加毛玻璃特效 / 剪辑结合，不做 TTS）
-- [`workflows/_delivery.md`](workflows/_delivery.md) — 共用交付（MCP / zip）
+### workflows/ (routed by primary input)
+- [`workflows/text-to-lecture.md`](workflows/text-to-lecture.md) — plain text → generated explainer
+- [`workflows/audio-upload.md`](workflows/audio-upload.md) — audio / podcast (rough / polished)
+- [`workflows/pdf-paper.md`](workflows/pdf-paper.md) — PDF paper (A explain / B showcase the original)
+- [`workflows/video.md`](workflows/video.md) — live-action video (overlay frosted-glass effects / edit-combine, no TTS)
+- [`workflows/_delivery.md`](workflows/_delivery.md) — shared delivery (MCP / zip)
 
 ### reference/
-- [`reference/audio-first.md`](reference/audio-first.md) — 三引擎 audio-first 写法（铁律）
-- [`reference/engine-routing.md`](reference/engine-routing.md) — 引擎选择决策树
-- [`reference/palette.md`](reference/palette.md) — editorial dark 调色板（#0d1117 / #6ec1e4 / #f4d35e / #ee6c4d / #aab1c0）
-- [`reference/brand-style.md`](reference/brand-style.md) — AutoLecture brand-light 调色板（cream #fefcf6 / navy #234976 / tan #d9b47b 渐变,镜像 styles.css）
-- [`reference/dsl-cheatsheet.md`](reference/dsl-cheatsheet.md) — VideoTeX 语法速查
-- [`reference/figure-matching.md`](reference/figure-matching.md) — 配套素材 anchor 匹配
-- [`reference/pdf-showcase.md`](reference/pdf-showcase.md) — PDF 两种流程 + 4 种 react-pdf 镜头
-- [`reference/typo-fixes.md`](reference/typo-fixes.md) — 中文 Whisper 常见错字
-- [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 个可借鉴动效技法
-- [`reference/runtime-modes.md`](reference/runtime-modes.md) — mcp / zip 两模式速查(每个动作怎么做)
-- [`reference/marketplace.md`](reference/marketplace.md) — 模版商城路径(入口 ② 选「去商城」时走):列题材 → 选模版 → 拉创作指令卡 → 克隆起始项目 → 按卡接管(仅 mcp;含 publish 自建模版说明)
-- [`reference/layout-spec.md`](reference/layout-spec.md) — harness 校验的 layout 限值(canvas / safe zone / 字数上限) Claude 读这个就知道边界
-- [`reference/hand-drawn-storybook.md`](reference/hand-drawn-storybook.md) — 手绘 storybook 风技法(内联 SVG 描边 draw 动画 + feTurbulence 钢笔抖动 + bob/sway 微动 + 品牌色),寓言体 / 故事化讲解可整片复用
-- [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — 编译 / 单镜预览 / `fetch_frame` 抽帧三件套的反直觉点(成本量级、单 view 临时覆写 main.tex、content_hash 当 scene_id、base64 落盘解码、改分辨率=全量重渲)
-- [`reference/resume-checklist.md`](reference/resume-checklist.md) — resume 任务核对清单：`get_snapshot` 对齐云端真相、逐个 `read_file` 核对、清理孤儿、骨架先行
+- [`reference/audio-first.md`](reference/audio-first.md) — three-engine audio-first patterns (the iron law)
+- [`reference/engine-routing.md`](reference/engine-routing.md) — engine-selection decision tree
+- [`reference/palette.md`](reference/palette.md) — editorial dark palette (#0d1117 / #6ec1e4 / #f4d35e / #ee6c4d / #aab1c0)
+- [`reference/brand-style.md`](reference/brand-style.md) — AutoLecture brand-light palette (cream #fefcf6 / navy #234976 / tan #d9b47b gradient, mirrors styles.css)
+- [`reference/dsl-cheatsheet.md`](reference/dsl-cheatsheet.md) — VideoTeX syntax cheat-sheet
+- [`reference/figure-matching.md`](reference/figure-matching.md) — supporting-asset anchor matching
+- [`reference/pdf-showcase.md`](reference/pdf-showcase.md) — the two PDF flows + 4 react-pdf shots
+- [`reference/typo-fixes.md`](reference/typo-fixes.md) — common Chinese Whisper typos
+- [`reference/borrowed-techniques.md`](reference/borrowed-techniques.md) — 6 borrowable motion techniques
+- [`reference/runtime-modes.md`](reference/runtime-modes.md) — mcp / zip cheat-sheet (how each action is done)
+- [`reference/marketplace.md`](reference/marketplace.md) — marketplace path (entry ② "go to marketplace"): list genres → pick a template → pull the authoring card → clone the starting project → take over per the card (mcp only; incl. publishing your own template)
+- [`reference/layout-spec.md`](reference/layout-spec.md) — the layout limits the harness checks (canvas / safe zone / char caps); read this to know the boundaries
+- [`reference/hand-drawn-storybook.md`](reference/hand-drawn-storybook.md) — hand-drawn storybook style (inline-SVG stroke-draw animation + feTurbulence pen jitter + bob/sway micro-motion + brand colors); reusable across a whole fable / story-form explainer
+- [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — the counter-intuitive points of the compile / single-view preview / `fetch_frame` trio (cost scale, temporary single-view main.tex override, content_hash as scene_id, base64-to-disk decode, change resolution = full re-render)
+- [`reference/resume-checklist.md`](reference/resume-checklist.md) — resume-task checklist: `get_snapshot` to align with cloud truth, `read_file` each to verify, clean up orphans, skeleton first
 
 ### templates/
 - [`templates/main.tex.tpl`](templates/main.tex.tpl) · [`templates/README.md.tpl`](templates/README.md.tpl)
 - [`templates/scene_remotion.tsx.tpl`](templates/scene_remotion.tsx.tpl) · [`templates/scene_html.html.tpl`](templates/scene_html.html.tpl) · [`templates/scene_manim.py.tpl`](templates/scene_manim.py.tpl)
 - [`templates/scene_image_zoom.tsx.tpl`](templates/scene_image_zoom.tsx.tpl) — figure Ken Burns
-- [`templates/scene_overlay.tsx.tpl`](templates/scene_overlay.tsx.tpl) — 实拍结合透明叠加(editorial dark · 黑玻璃)
-- [`templates/scene_brand_lower_third.tsx.tpl`](templates/scene_brand_lower_third.tsx.tpl) — 实拍结合透明叠加(AutoLecture brand · paper 玻璃 + navy→tan 渐变)
-- [`templates/scene_screencast_pip.tsx.tpl`](templates/scene_screencast_pip.tsx.tpl) — Tella 录屏 + 头像全屏↔小窗 morph
-- PDF 真页镜头（Flow B）：[`scene_pdf_overview`](templates/scene_pdf_overview.tsx.tpl) · [`scene_pdf_switch`](templates/scene_pdf_switch.tsx.tpl) · [`scene_pdf_focus`](templates/scene_pdf_focus.tsx.tpl) · [`scene_pdf_highlight`](templates/scene_pdf_highlight.tsx.tpl)
+- [`templates/scene_overlay.tsx.tpl`](templates/scene_overlay.tsx.tpl) — live-action transparent overlay (editorial dark · black glass)
+- [`templates/scene_brand_lower_third.tsx.tpl`](templates/scene_brand_lower_third.tsx.tpl) — live-action transparent overlay (AutoLecture brand · paper glass + navy→tan gradient)
+- [`templates/scene_screencast_pip.tsx.tpl`](templates/scene_screencast_pip.tsx.tpl) — Tella screencast + avatar fullscreen↔inset morph
+- PDF real-page shots (Flow B): [`scene_pdf_overview`](templates/scene_pdf_overview.tsx.tpl) · [`scene_pdf_switch`](templates/scene_pdf_switch.tsx.tpl) · [`scene_pdf_focus`](templates/scene_pdf_focus.tsx.tpl) · [`scene_pdf_highlight`](templates/scene_pdf_highlight.tsx.tpl)
 
 ### scripts/
-- [`scripts/transcribe.py`](scripts/transcribe.py) — Whisper 词级转录
-- [`scripts/find_beats.py`](scripts/find_beats.py) — anchor-phrase 定位时间戳
-- [`scripts/extract_pdf_figures.py`](scripts/extract_pdf_figures.py) — PDF figure 抽取（默认 figures-only）
-- [`scripts/clone_github_assets.py`](scripts/clone_github_assets.py) — repo 图片 sparse-clone
-- [`scripts/package_zip.py`](scripts/package_zip.py) — zip 模式：校验 + 打包 zip（mcp 模式直接用 MCP 工具写文件 + 编译,不用脚本）
+- [`scripts/transcribe.py`](scripts/transcribe.py) — Whisper word-level transcription
+- [`scripts/find_beats.py`](scripts/find_beats.py) — anchor-phrase timestamp location
+- [`scripts/extract_pdf_figures.py`](scripts/extract_pdf_figures.py) — PDF figure extraction (figures-only by default)
+- [`scripts/clone_github_assets.py`](scripts/clone_github_assets.py) — repo image sparse-clone
+- [`scripts/package_zip.py`](scripts/package_zip.py) — zip mode: validate + package a zip (mcp mode uses the MCP tools to write files + compile directly, no script)
 
-### 关键经验（实际跑过的 demo）
-1. **不要把 70s+ 的 Manim 单 scene 当作天经地义** —— 1000+ 帧 + 40 dot + 多 FadeIn 渲染超 300s timeout；同样视觉用 Remotion DOM 模拟（CSS 粒子 + transform）<10s。
-2. **修转录错字非常重要** —— 「高斯」→「高撕」、「正则项」→「政策画像」直接用会让 headline 乱码。
-3. **每个 scene 独立设计 ≠ 不一致** —— 统一调色板 + 字体 + 动画语法（fade-up / pop / strike）就有一致性。
-4. **HTML 是默认首选** —— 快、稳、灵活；Manim 只在数学/几何精度真重要时用；Remotion 适合大数字 / 时间轴。
-5. **`\imageFile` ≠ `\image`** —— 前者是上传素材，后者是 AI 生图；可一起用（固定背景 `\imageFile`，特殊插画 `\image`）。
+### Key lessons (from demos actually run)
+1. **Don't take a 70s+ single Manim scene for granted** — 1000+ frames + 40 dots + many
+   FadeIns blow past the 300s render timeout; the same visual in Remotion DOM (CSS particles
+   + transform) renders in <10s.
+2. **Fixing transcription typos matters a lot** — using "高斯" misheard as "高撕", or "正则项"
+   as "政策画像", verbatim turns a headline into garbage.
+3. **Each scene independently designed ≠ inconsistent** — a unified palette + fonts + animation
+   grammar (fade-up / pop / strike) gives consistency.
+4. **HTML is the default first choice** — fast, stable, flexible; use Manim only when math /
+   geometric precision truly matters; Remotion suits big numbers / timelines.
+5. **`\imageFile` ≠ `\image`** — the former is an uploaded asset, the latter is AI image
+   generation; usable together (fixed background `\imageFile`, special illustration `\image`).
 
-### 上游
-- 主项目 <https://github.com/scao7/autolecture> · 远程 MCP <https://mcp.autolecture.ai/mcp> · DSL 文档 <https://autolecture.ai/docs/dsl>
+### Upstream
+- Main project <https://github.com/scao7/autolecture> · Remote MCP <https://mcp.autolecture.ai/mcp> · DSL docs <https://autolecture.ai/docs/dsl>
+</content>

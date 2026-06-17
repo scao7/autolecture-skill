@@ -1,78 +1,80 @@
-# PDF 视频化 — 两种流程
+# PDF to Video — Two Flows
 
-用户给一个 PDF（通常是论文），有**两种**完全不同的诉求。先判断是哪一种，再选工具。
+The user hands you a PDF (usually a paper). There are **two** completely different asks. Decide which one first, then pick tools.
 
-| 流程 | 用户想要 | 怎么做 | 视觉素材 |
+| Flow | User wants | How | Visual assets |
 |---|---|---|---|
-| **A · 讲解知识** | "把这篇论文讲明白" | LLM 读 PDF → 重写成口播脚本 → 抽 figure 配画面 | `extract_pdf_figures.py` 抽出的 figure crop + 手写 scene |
-| **B · 展示 PDF** | "在视频里展示这篇 PDF，翻页 / 放大 / 高亮某句话" | 直接在画面里渲染 PDF 真页，zoom / scroll / highlight | `react-pdf` 渲染真页（不预栅格化）|
+| **A · Explain the content** | "Make this paper clear to me" | LLM reads PDF → rewrites into a narration script → pull figures for visuals | figure crops from `extract_pdf_figures.py` + hand-written scenes |
+| **B · Show the PDF** | "Show this PDF in the video — flip pages / zoom / highlight a sentence" | Render the real PDF pages on screen directly: zoom / scroll / highlight | `react-pdf` renders real pages (no pre-rasterization) |
 
-判定规则：
-- "帮我把这篇论文做成讲解 / 科普" → **A**（默认）
-- "在视频里**展示**这篇 PDF" / "翻页" / "放大原文某段" / "高亮这句话" / "像翻杂志一样" → **B**
-- 含糊 → 问一句："你想让我**讲解里面的知识**（配动画），还是想**在视频里展示这份 PDF 原件**（翻页+放大+高亮）？"
+Decision rules:
+- "Turn this paper into an explainer / a popular-science piece" → **A** (default)
+- "**Show** this PDF in the video" / "flip pages" / "zoom into a passage" / "highlight this sentence" / "like flipping through a magazine" → **B**
+- Ambiguous → ask: "Do you want me to **explain the knowledge inside** (with animations), or **show the original PDF in the video** (page flips + zoom + highlight)?"
 
-两种可以混用：A 为主，中间插一两个 B 的"原文高亮"镜头强调关键句。
+The two can be mixed: A as the spine, with one or two B "original-text highlight" views in the middle to stress a key sentence.
 
 ---
 
-## Flow A · 讲解知识（已有流程）
+## Flow A · Explain the content (existing flow)
 
-不变。见 [`figure-matching.md`](figure-matching.md)：抽 figure → 按音频锚句 match → Ken Burns / annotate。PDF 只是**素材来源**，最终画面是重新设计的 scene，不出现 PDF 原件。
+Unchanged. See [`figure-matching.md`](figure-matching.md): pull figures → match against audio anchor sentences → Ken Burns / annotate. The PDF is only a **source of assets**; the final visuals are freshly designed scenes, and the original PDF never appears.
 
 ---
 
-## Flow B · 展示 PDF（react-pdf，新）
+## Flow B · Show the PDF (react-pdf, new)
 
-最终画面里**出现 PDF 真页**。靠 AutoLecture Remotion bundle 里的 `react-pdf`（pdfjs）直接渲染——矢量清晰，任意放大不糊，无需预先栅格化成 PNG。
+The **real PDF pages appear** in the final visuals. This relies on `react-pdf` (pdfjs) in the AutoLecture Remotion bundle to render the original PDF directly — vector-sharp, stays crisp at any zoom, no need to pre-rasterize to PNG.
 
-### 前提
-- PDF 作为**项目 asset 上传**（和音频/图一样）。scene 里 `staticFile('paper.pdf')` 就能拿到（AutoLecture 编译时把项目 assets/ 挂成 bundle 的 public/）。
-- 不需要跑 `extract_pdf_figures.py`——react-pdf 直接读原 PDF。
+### Prerequisites
+- Upload the PDF as a **project asset** (same as audio/images). In a scene, `staticFile('paper.pdf')` reaches it (AutoLecture mounts the project `assets/` as the bundle's `public/` at compile time).
+- No need to run `extract_pdf_figures.py` — react-pdf reads the original PDF directly.
 
-### 镜头语言（4 种 scene，借鉴 pdf2video）
-按「旁白这一拍在做什么」选 scene。一个 view = 一个 scene = 一拍旁白：
+### Camera language (4 scene types, borrowed from pdf2video)
+Pick a scene by "what the narration is doing this beat." One view = one scene = one narration beat:
 
-| 模板 | 旁白动作 | 效果 | 关键参数 |
+| Template | Narration action | Effect | Key params |
 |---|---|---|---|
-| [`scene_pdf_overview.tsx.tpl`](../templates/scene_pdf_overview.tsx.tpl) | "这篇论文我们快速过一遍" | 几页**扇形铺开**（fan/stack）当开场建立镜 | `PAGES=[1,2,3,4]`、`SPREAD` |
-| [`scene_pdf_switch.tsx.tpl`](../templates/scene_pdf_switch.tsx.tpl) | "讲完方法,**翻到**实验那页" | 页 A **滑动/淡出**到页 B | `PAGE_FROM/PAGE_TO`、`DIR`、`TURN_AT` |
-| [`scene_pdf_focus.tsx.tpl`](../templates/scene_pdf_focus.tsx.tpl) | "我们看**这一块**" | 显示某页 + 聚焦/滚动到某区域（无高亮框）| `FOCUS_PHRASE` 或 `FOCUS_FX/FY`、`SCROLL` |
-| [`scene_pdf_highlight.tsx.tpl`](../templates/scene_pdf_highlight.tsx.tpl) | "重点是**这句话**" | 显示某页 + zoom 推近 + **高亮旁白正在讲的那句话** | `TARGET`（旁白引用的短语）、`ZOOM_END` |
+| [`scene_pdf_overview.tsx.tpl`](../templates/scene_pdf_overview.tsx.tpl) | "Let's skim this paper quickly" | A few pages **fanned/stacked** as an establishing view | `PAGES=[1,2,3,4]`, `SPREAD` |
+| [`scene_pdf_switch.tsx.tpl`](../templates/scene_pdf_switch.tsx.tpl) | "Method done, **flip to** the experiments page" | Page A **slides/fades** to page B | `PAGE_FROM/PAGE_TO`, `DIR`, `TURN_AT` |
+| [`scene_pdf_focus.tsx.tpl`](../templates/scene_pdf_focus.tsx.tpl) | "Let's look at **this block**" | Show a page + focus/scroll to a region (no highlight box) | `FOCUS_PHRASE` or `FOCUS_FX/FY`, `SCROLL` |
+| [`scene_pdf_highlight.tsx.tpl`](../templates/scene_pdf_highlight.tsx.tpl) | "The key is **this sentence**" | Show a page + zoom in + **highlight the exact sentence the narration is saying** | `TARGET` (the phrase the narration quotes), `ZOOM_END` |
 
-典型编排：`overview`（开场建立）→ `switch`（翻到目标页）→ `focus`（推到目标区域）→ `highlight`（钉死关键句）。不必每种都用，按旁白需要挑。
+Typical choreography: `overview` (establish) → `switch` (flip to target page) → `focus` (push to target region) → `highlight` (pin the key sentence). You don't need all of them — pick by what the narration needs.
 
-### 字体 / CJK：cMap 配置
-论文常含 CJK / 数学 / subset 字体；pdfjs 需要 cMap 才能正确渲染，否则字变空白。`scene_pdf_switch` / `scene_pdf_overview` 已带 `PDF_OPTS = { cMapUrl, cMapPacked }`；写新 PDF scene 时给 `<Document options={PDF_OPTS}>` 一律带上。
+### Fonts / CJK: cMap config
+Papers often contain CJK / math / subset fonts; pdfjs needs cMaps to render them correctly, otherwise glyphs go blank. `scene_pdf_switch` / `scene_pdf_overview` already carry `PDF_OPTS = { cMapUrl, cMapPacked }`; when writing a new PDF scene, always pass `<Document options={PDF_OPTS}>`.
 
-### 高亮怎么对准（核心）
-**不要硬编码坐标。** 模板用 pdfjs 的 text layer 自动定位：
-1. `\say{}` 里旁白这一拍在讲哪句话 → 把那句话（或其中一个独特短语）填进 `TARGET`。
-2. scene 里 `page.getTextContent()` 找到包含 `TARGET` 的 text item，取 `transform` → `viewport.convertToViewportPoint()` 换成像素 bbox。
-3. 高亮框画在那个 bbox 上；zoom 的 `transform-origin` 设成 bbox 中心 → 镜头自动推到那句话。
+### How to align the highlight (core)
+**Do NOT hardcode coordinates.** The templates auto-locate via pdfjs's text layer:
+1. Find which sentence the narration is saying this beat in `\say{}` → put that sentence (or one distinctive phrase from it) into `TARGET`.
+2. In the scene, `page.getTextContent()` finds the text item containing `TARGET`, takes its `transform` → `viewport.convertToViewportPoint()` to get a pixel bbox.
+3. The highlight box is drawn on that bbox; set the zoom's `transform-origin` to the bbox center → the camera pushes onto that sentence automatically.
 
-短语选择建议：挑该行里**独特、好匹配**的几个词（避免 "the"/"of" 这种到处都是的词）。高亮粒度是**整行/整个 text span**（pdfjs 按 span 给文字）——视觉上"高亮这一句"已经够干净；要精确到词需要按字符比例估算，proportional 字体下不准，默认别做。
+Phrase-selection tip: pick a few **distinctive, easy-to-match** words from the line (avoid "the"/"of" and other ubiquitous words). The highlight granularity is the **whole line / whole text span** (pdfjs hands you text per span) — visually "highlight this sentence" is already clean enough. Word-level precision requires estimating from character proportions, which is inaccurate in proportional fonts; don't do it by default.
 
 ### audio-first
-两个模板的 `DURATION_FRAMES` 都会被 compiler 重写成对应 `\say{}` 的真实时长——zoom 永远在旁白讲完时刚好推到位。所以写动画时用"自然时长比例"（`interpolate(frame, [0, durationInFrames-1], ...)`），别假设固定帧数。
+Both templates' `DURATION_FRAMES` get rewritten by the compiler to the real duration of the matching `\say{}` — so the zoom always lands exactly when the narration finishes. So write animations using "natural duration ratios" (`interpolate(frame, [0, durationInFrames-1], ...)`), don't assume a fixed frame count.
 
-### 在 main.tex 里
+### In main.tex
 ```latex
 \begin{view}
-  \say{论文里这句话最关键 —— 基率其实非常重要。}
+  \say{This sentence in the paper is the most important — the base rate actually matters a lot.}
   \remotionFile{scenes/pdf_highlight_baserate.tsx}
 \end{view}
 ```
-（scene 文件就是填好占位符的 `scene_pdf_highlight.tsx.tpl`。）
+(The scene file is just `scene_pdf_highlight.tsx.tpl` with placeholders filled in.)
 
-### 成本
-react-pdf scene 是手写 `\remotionFile{}` → 命中缓存 → 重编译几乎 0 成本（和其它 `\manimFile`/`\htmlFile` 一样）。比 `\remotion{prompt}` LLM 生成便宜得多。
+### Cost
+A react-pdf scene is a hand-written `\remotionFile{}` → hits cache → re-compile is nearly 0 cost (same as any other `\manimFile`/`\htmlFile`). Much cheaper than `\remotion{prompt}` LLM generation.
 
 ---
 
-## 致谢
-Flow B 的 scene 语法（focus zoom / scroll / 高亮）借鉴自
-[DangJin/pdf2video](https://github.com/DangJin/pdf2video)（MIT）——pdfjs
-worker 配置、`delayRender`/`continueRender` 异步加载、focus/scroll 动效
-都参考了它。我们的实现是按 AutoLecture 的 `\remotionFile{}` + audio-first
-约定重写的，并把 pdf2video 的"只显示作者已有标注"扩展成**旁白驱动的任意文字高亮**。
+## Acknowledgement
+Flow B's scene grammar (focus zoom / scroll / highlight) is borrowed from
+[DangJin/pdf2video](https://github.com/DangJin/pdf2video) (MIT) — pdfjs
+worker config, `delayRender`/`continueRender` async loading, and focus/scroll
+motion all reference it. Our implementation is rewritten to AutoLecture's
+`\remotionFile{}` + audio-first conventions, and extends pdf2video's "only show
+the author's existing annotations" into **narration-driven highlighting of
+arbitrary text**.

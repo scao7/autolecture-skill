@@ -1,105 +1,105 @@
-# Resume + 项目卫生 checklist — 接手任务先读这页
+# Resume + project hygiene checklist — read this page before picking up any task
 
-任何「继续 / resume / 接着上次做」的任务,**第一个动作不是写代码,是核对真相**。
-真相只在云端项目里(实际文件 + `main.tex`),summary / journal / 记忆里的文件清单
-**一律只当线索**。
+For any "continue / resume / pick up where we left off" task, **your first action is not writing code — it's verifying ground truth.**
+Ground truth lives only in the cloud project (the actual files + `main.tex`). File lists in summaries / journals / memory
+**are only leads, nothing more.**
 
-> **一句话铁律**:resume 的第一个工具调用必须是 `get_snapshot`。**别信「已全部写好」。**
+> **One-line iron law**: the first tool call on resume MUST be `get_snapshot`. **Do NOT trust "everything's already written."**
 
-违反的后果(真实发生过):照着 summary 往下做 → 量产了一整套挂在废弃草稿上的场景 →
-最后成片缺镜、文件名打架,得考古才知道哪套正式。
+Consequences of violating this (it actually happened): followed the summary blindly → mass-produced a whole set of scenes
+hanging off an abandoned draft → final render had missing views and clashing filenames; took an archaeology dig to figure out which set was canonical.
 
 ---
 
-## 一、Resume 铁律:真相在云端,不在 summary
+## 1. Resume iron law: ground truth is in the cloud, not the summary
 
-compaction summary / journal / 记忆都是**有损**的。它们会写「17 个场景已全部写好,
-文件名 `scene_*`」——但云端实际可能是:本会话只写了 1 个样张,真正成片是上一会话的
-`hd_*`(还缺一个 `hd_03`),而 summary 点名的 `scene_*` 是更早被废弃的混合草稿。
-**信 summary = 把废稿当正式镜次往下量产。**
+Compaction summaries / journals / memory are **lossy**. They'll say "all 17 scenes written,
+filenames `scene_*`" — but the cloud reality may be: this session only wrote 1 sample, the real render is the previous session's
+`hd_*` (still missing one `hd_03`), and the `scene_*` the summary names is an even older, abandoned mixed draft.
+**Trusting the summary = treating discarded drafts as canonical views and mass-producing on top of them.**
 
-### 对照流程(逐步,不许跳)
+### Verification flow (step by step, no skipping)
 
-1. **`get_snapshot`** —— 拉云端项目实际状态。这是唯一真相源,不是本地文件、不是记忆。
-2. **读 `main.tex` 的 view 顺序** —— `main.tex` 里 `\begin{videotex}` 内的 view 序列
-   就是「当前正式镜次清单」。每个 view 引的是哪个文件(`\htmlFile{...}` / `\manimFile{...}`)?
-   按顺序列出来。
-3. **逐个 `read_file` 核对** —— 对 view 引到的每个文件:
-   - 文件**确实存在**吗?(snapshot 的文件列表里有没有)
-   - 内容是**成片**还是**废稿**?(草稿特征:html+tsx 混着、占位 `TODO`、半截动画、
-     跟旁白对不上)
-   - 断号要警觉:`hd_01 hd_02 hd_04 …` 缺 `hd_03` —— 是漏写,还是改了命名?查清楚。
-4. **只有逐个核对通过,才在已确认的正式集上继续**。snapshot 里那些没被 `main.tex`
-   引用的文件 = 孤儿,默认当废稿,**不要拿来续写**。
+1. **`get_snapshot`** — pull the cloud project's actual state. This is the single source of truth, not local files, not memory.
+2. **Read the view order in `main.tex`** — the view sequence inside `\begin{videotex}` in `main.tex`
+   IS the "current canonical view list." Which file does each view reference (`\htmlFile{...}` / `\manimFile{...}`)?
+   List them out in order.
+3. **`read_file` each one to verify** — for every file a view references:
+   - Does the file **actually exist**? (is it in the snapshot's file list?)
+   - Is the content a **finished render** or a **discarded draft**? (draft tells: mixed html+tsx, placeholder `TODO`,
+     half-done animation, out of sync with the narration)
+   - Be alert to gaps in numbering: `hd_01 hd_02 hd_04 …` missing `hd_03` — is it a skipped write, or a rename? Find out.
+4. **Only continue on the confirmed canonical set after verifying each file**. Files in the snapshot not referenced
+   by `main.tex` = orphans; treat them as discarded drafts by default and **don't continue writing on top of them.**
 
-### 反例(照抄 summary 的代价)
+### Counter-example (the cost of copying the summary)
 
-| summary 说 | 云端实际 | 后果 |
+| Summary says | Cloud reality | Consequence |
 |---|---|---|
-| `scene_*` 17 个全好 | `scene_*` 是废弃的 html+tsx 混合草稿 | 在废稿上量产 |
-| —— | 成片是上会话的 `hd_*`,16 个,**缺 `hd_03`** | 缺镜没被发现 |
-| 「已全部写好」 | 本会话只写了 1 个样张 | 误判进度 |
+| `scene_*` all 17 good | `scene_*` is an abandoned mixed html+tsx draft | mass-produced on a discarded draft |
+| — | render is the previous session's `hd_*`, 16 of them, **missing `hd_03`** | missing view went unnoticed |
+| "everything's written" | this session only wrote 1 sample | misjudged progress |
 
-> 教训:**summary 给线索,`read_file` 给真相。** 「已全部写好」这种结论性话术,
-> 必须每个文件亲自核到才算数。
-
----
-
-## 二、项目卫生:一套命名 + 归档孤儿 + MANIFEST
-
-### 1. 一个项目一套命名前缀
-
-同一项目只用**一套**前缀(要么全 `hd_*`,要么全 `scene_*`,别并存)。
-两套前缀同时躺着 = 「哪套正式」得靠考古。
-
-### 2. 替换旧版顺手归档,别留孤儿
-
-用新版替换旧版时,**当场**清掉旧的,别拖:
-
-```
-# 写好新版后,立即归档被取代的旧文件
-delete_file  scene_03.html          # 直接删废稿
-move_file    scene_03.html  _archive/scene_03.html   # 或归档留底
-```
-
-孤儿文件跨多轮不清理 → 堆积 → 下次 resume 又得重新判断「哪套正式」。
-
-### 3. 断号会放大歧义
-
-文件名断号(如 `hd_01 hd_02 hd_04`,缺 `03`)会让人分不清是**漏写**还是**改名**。
-连续编号 + 即时归档,把歧义掐死在源头。
+> Lesson: **summaries give leads, `read_file` gives truth.** Conclusory phrasing like "everything's written"
+> only counts once you've personally verified every file.
 
 ---
 
-## 三、MANIFEST 约定:当前正式镜次的唯一清单
+## 2. Project hygiene: one naming scheme + archive orphans + MANIFEST
 
-每个项目要有**一个**权威的「当前正式镜次」清单。两种做法,任选其一但必须明确:
+### 1. One naming prefix per project
 
-- **首选:靠 `main.tex` 的 view 顺序** —— `\begin{videotex}` 里的 view 序列本身就是
-  清单。这样清单和成片**同源**,不会漂移。resume 时读它即可。
-- **辅助:项目根放 `MANIFEST.md`** —— 当 view 引用和文件意图不够自解释时,用一张表
-  固化「镜次 → 文件 → 状态」:
+A single project uses **one** prefix only (either all `hd_*` or all `scene_*`, never both side by side).
+Two prefixes coexisting = "which set is canonical" becomes an archaeology problem.
+
+### 2. Archive the old version when you replace it — don't leave orphans
+
+When replacing an old version with a new one, clear the old one **on the spot**, don't defer:
+
+```
+# right after writing the new version, archive the file it supersedes
+delete_file  scene_03.html          # just delete the discarded draft
+move_file    scene_03.html  _archive/scene_03.html   # or archive to keep a backup
+```
+
+Orphan files left uncleaned across rounds → pile up → next resume you have to re-judge "which set is canonical" all over again.
+
+### 3. Gaps in numbering amplify ambiguity
+
+A gap in filenames (e.g. `hd_01 hd_02 hd_04`, missing `03`) makes it impossible to tell a **skipped write**
+from a **rename**. Contiguous numbering + immediate archiving kills the ambiguity at the source.
+
+---
+
+## 3. MANIFEST convention: the single list of current canonical views
+
+Every project needs **one** authoritative "current canonical views" list. Two approaches — pick either, but be explicit:
+
+- **Preferred: rely on the view order in `main.tex`** — the view sequence inside `\begin{videotex}` IS
+  the list. This keeps the list and the render **same-source**, so they can't drift. On resume, just read it.
+- **Backup: a `MANIFEST.md` at the project root** — when view references and file intent aren't self-explanatory enough,
+  use a table to pin down "view → file → status":
 
   ```markdown
-  # MANIFEST — 当前正式镜次(以此为准,其余文件皆孤儿)
+  # MANIFEST — current canonical views (authoritative; all other files are orphans)
 
-  | # | view | 文件 | 状态 |
-  |---|------|------|------|
-  | 01 | 开场 | hd_01.html | 成片 |
-  | 02 | 角色登场 | hd_02.html | 成片 |
-  | 03 | 冲突 | hd_03.html | TODO(缺) |
+  | # | view | file | status |
+  |---|------|------|--------|
+  | 01 | opening | hd_01.html | finished |
+  | 02 | character entrance | hd_02.html | finished |
+  | 03 | conflict | hd_03.html | TODO (missing) |
   | … | … | … | … |
   ```
 
-> 规则:**`main.tex` view 顺序与 `MANIFEST.md` 冲突时,以 `main.tex` 为准**
-> (它驱动真正的编译)。MANIFEST 只是给人看的导览,不是第二真相源。
+> Rule: **when `main.tex` view order conflicts with `MANIFEST.md`, `main.tex` wins**
+> (it drives the actual compile). MANIFEST is just a human-facing guide, not a second source of truth.
 
 ---
 
-## 一页速记
+## One-page recap
 
-1. resume 第一动作 = `get_snapshot`,不是写代码。
-2. 真相 = 云端文件 + `main.tex` view 顺序;summary / 记忆 = 线索,逐个 `read_file` 核。
-3. 不信「已全部写好」;断号、混合草稿、孤儿文件都要亲自核到。
-4. 一个项目一套前缀;替换旧版顺手 `delete_file` / `move_file`。
-5. 正式镜次清单 = `main.tex` view 顺序(首选)或 `MANIFEST.md`(辅助,以 main.tex 为准)。
+1. First action on resume = `get_snapshot`, not writing code.
+2. Truth = cloud files + `main.tex` view order; summaries / memory = leads, `read_file` each one to verify.
+3. Don't trust "everything's already written"; gaps in numbering, mixed drafts, orphan files all need personal verification.
+4. One prefix per project; when replacing old versions, `delete_file` / `move_file` on the spot.
+5. Canonical view list = `main.tex` view order (preferred) or `MANIFEST.md` (backup; main.tex wins).

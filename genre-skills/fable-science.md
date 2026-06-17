@@ -1,101 +1,100 @@
-# 寓言科普 · fable-science
+# Fable science · fable-science
 
-> **genre**: 寓言科普　**engine**: html(手绘 storybook)　**palette**: brand cream/navy/tan
-> **来源**: 「百巧城 / MCP 寓言」(手绘 storybook 17 镜验证) · 蒸馏自成品项目
+> **genre**: fable science　**engine**: html (hand-drawn storybook)　**palette**: brand cream/navy/tan
+> **source**: "Town of a Hundred Crafts / MCP fable" (hand-drawn storybook, 17-view verified) · distilled from a finished project
 
-一个 **skill**(不是待克隆的模版):描述它做哪类片子 + 怎么调用 + 照着做的 recipe。
-选中它,agent 拿用户的概念**现做一条新片**,照下面 recipe 走;不是克隆某个项目填占位。
+A **skill** (not a template to be cloned): describes what kind of video it makes + how to invoke it + the recipe to follow.
+Select it, and the agent takes the user's concept and **makes a fresh new video right then**, following the recipe below; it's not cloning some project and filling placeholders.
 
 ---
 
-## 这个 skill 做什么
+## What this skill does
 
-把一个**抽象/技术概念**讲成一则**寓言**:概念拟人化成小世界里的角色,机制变成故事里
-发生的事,温暖手绘绘本质感,**旁白叙事驱动**画面。
+Tells an **abstract / technical concept** as a **fable**: the concept is personified into characters in a little world, the mechanism becomes events happening in the story, warm hand-drawn picture-book texture, **narration-driven** visuals.
 
-- **适合**:讲原理 / 系统 / 协议 / 算法 / 架构这类「看不见摸不着」的东西;想要温暖、
-  有记忆点、非 PPT 的科普;面向泛受众或入门者。
-- **不适合**:要精确公式推导(走「数学公式」skill)、要展示真实 UI/数据(走录屏 /
-  数据可视化)、严肃论文讲解(走 pdf-paper)。寓言是**降低门槛的隐喻**,不追求严谨度。
+- **Good for**: explaining principles / systems / protocols / algorithms / architectures, the kind of "invisible, intangible" things; wanting warm,
+  memorable, non-PowerPoint popularization; aimed at a general audience or beginners.
+- **Not for**: precise formula derivation (go the "math formula" skill), showing real UI/data (go screen-capture /
+  data visualization), serious paper explanation (go pdf-paper). The fable is a **metaphor that lowers the barrier**, it doesn't chase rigor.
 
-## 怎么调用(invocation)
+## How to invoke (invocation)
 
-1. 选中本 skill → 先问用户三件事(见下「输入」)。
-2. agent 照 **Recipe** 现做:概念→寓言映射 → 旁白定稿 → 手绘 storybook 配画面 →
-   增量编译验证 → 交付。
-3. 若本 skill 带 starter 骨架,先 `use` 它 scaffold 起步;没有就从空项目按 recipe 建。
-4. 全程音频驱动 + 样张先行 —— 和 freestyle 同一套纪律,只是**叙事与视觉锁定在寓言体**。
+1. Select this skill → first ask the user three things (see "Input" below).
+2. The agent makes a fresh video following the **Recipe**: concept→fable mapping → narration finalized → hand-drawn storybook visuals →
+   incremental compile verification → delivery.
+3. If this skill ships a starter skeleton, `use` it to scaffold the start first; if not, build from an empty project per the recipe.
+4. Audio-driven + sample-first throughout — the same discipline as freestyle, only the **narrative and visuals are locked to the fable form**.
 
-> 视觉技法细节不在这里复述,直接照 [`../reference/hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md)
-> (描边 draw → 颜料 flood → 钢笔抖动 → 持续微动 → 入场预算)。本 skill 只管「寓言这一层」怎么搭。
+> Visual technique details are not repeated here; follow [`../reference/hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md) directly
+> (stroke draw → paint flood → pen jitter → continuous micro-motion → entrance budget). This skill only covers how to build "the fable layer".
 
-## 输入(开场一次问清)
+## Input (ask once at the start)
 
-- **要讲的概念/主题**(必填):比如「MCP 协议怎么工作」「TCP 三次握手」「梯度下降」。
-- **受众 + 语气**:儿童绘本 / 成人温暖科普 / 略带幽默 —— 决定旁白口吻。
-- **时长目标**:寓言科普甜区 **40–90s**(5–9 镜);更长容易拖。
+- **The concept/topic to explain** (required): e.g. "how the MCP protocol works", "TCP three-way handshake", "gradient descent".
+- **Audience + tone**: children's picture book / warm adult popularization / lightly humorous — decides the narration voice.
+- **Duration target**: the fable-science sweet spot is **40–90s** (5–9 views); longer tends to drag.
 
 ---
 
 ## Recipe
 
-### 1 · 概念 → 寓言映射(最关键,先做)
+### 1 · Concept → fable mapping (most critical, do it first)
 
-这一步定生死。把技术概念拆成**可拟人的零件**,逐一映射成小世界里的**角色 / 地点 / 事件**:
+This step decides life or death. Break the technical concept into **personifiable parts**, mapping each into a **character / place / event** in the little world:
 
-| 概念里的东西 | 映射成 | 例(MCP) |
+| The thing in the concept | Maps to | Example (MCP) |
 |---|---|---|
-| 实体 / 模块 / 角色方 | 一个**角色**(拟人小怪/小人/小动物) | client = 跑腿的小信使,server = 城里的店家 |
-| 关系 / 通道 / 协议 | 角色之间的**约定 / 路 / 信物** | MCP = 两边都认的「通关文牒」 |
-| 流程 / 算法步骤 | 故事里**依次发生的事件** | 握手 = 信使递牒、店家盖章、双方点头 |
-| 状态 / 数据 | 角色**手里的东西 / 表情** | 连接建立 = 信物对上、门打开 |
+| Entity / module / actor | a **character** (personified little creature/person/animal) | client = a little messenger running errands, server = a shopkeeper in town |
+| Relation / channel / protocol | a **pact / road / token** between characters | MCP = a "passport" both sides recognize |
+| Process / algorithm step | **events that happen in sequence** in the story | handshake = messenger hands over the passport, shopkeeper stamps it, both nod |
+| State / data | the **thing in a character's hand / their expression** | connection established = the tokens match, the door opens |
 
-产出一张 **映射表 + 一句话故事线**(谁,在哪,为了什么,发生了什么),给用户**定稿**再往下。
-寓言成不成立,全看这张表 —— 映射别牵强,一个概念零件对一个故事元素,**1:1 不要堆**。
+Produce a **mapping table + one-line story line** (who, where, for what, what happened), get the user to **finalize** it, then go on.
+Whether the fable holds up rests entirely on this table — don't force the mapping, one concept part to one story element, **1:1, don't pile up**.
 
-### 2 · 旁白脚本(定稿先行)
+### 2 · Narration script (finalize first)
 
-寓言科普是**讲故事**,旁白就是故事本身,不是说明书:
+Fable science is **telling a story**; the narration is the story itself, not a manual:
 
-- **故事体口吻**:「从前,在百巧城里,住着一个……」而不是「MCP 是一种协议,它……」。
-- 每镜 `\say{}` = 故事推进**一拍** + 暗扣一个技术点(故事在明、知识在暗)。
-- 收尾一镜**点题**:把寓言拉回现实「——这,就是 XX」。
-- 旁白先写全 → **给用户定稿** → 再配画面(音频是时间轴脊柱)。
-- `\say` ≤400 字 / 镜;默认不烧字幕(要 `burn=on` 才烧);有 voice sample 可 `[voice=mine]`。
+- **Story-voice tone**: "Once upon a time, in the Town of a Hundred Crafts, there lived a……" rather than "MCP is a protocol, it……".
+- Each view's `\say{}` = the story advancing **one beat** + secretly hooking one technical point (story in the open, knowledge underneath).
+- The closing view **lands the point**: pull the fable back to reality "——this, is XX".
+- Write the full narration first → **get the user to finalize** → then assign visuals (audio is the spine of the timeline).
+- `\say` ≤400 chars / view; captions off by default (need `burn=on` to burn); with a voice sample can use `[voice=mine]`.
 
-### 3 · 视觉:手绘 storybook(照技法做)
+### 3 · Visuals: hand-drawn storybook (do it by the technique)
 
-每镜一个 `\htmlFile{}`,严格照 [`hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md):
+One `\htmlFile{}` per view, strictly following [`hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md):
 
-- **角色一致**:同一个角色全片长一个样(同样的描边形状/配色),换镜只换姿态/位置/表情;
-  别每镜重画一个新造型(寓言靠角色复现建立记忆点)。
-- 一镜一个核心动作/事件,留白充足,brand 三件套 cream/navy/tan 不跑偏。
-- 每个 scene 不同 `seed`(抖法不雷同);一套命名前缀(如 `fb_01..fb_NN`)。
-- 入场 ≤1.5s 画完,之后只剩 `bob/sway/spin` 循环微动(audio-first 硬要求)。
+- **Character consistency**: the same character looks the same throughout the video (same stroke shape/palette), only the pose/position/expression changes per view;
+  don't redraw a new design each view (the fable builds memory hooks through character recurrence).
+- One core action/event per view, ample whitespace, the brand trio cream/navy/tan doesn't drift.
+- A different `seed` per scene (jitter doesn't repeat); one naming prefix (e.g. `fb_01..fb_NN`).
+- Entrance drawn in ≤1.5s, after which only `bob/sway/spin` loop micro-motion remains (audio-first hard requirement).
 
-### 4 · audio-first 时序
+### 4 · audio-first timing
 
-时长由 `\say` 驱动,HTML 不知音频多长 → 入场动画跑完即 frozen frame。所以每镜过一遍
-hand-drawn-storybook 的「入场预算自检」三连:第 2 秒后还在动吗?动的只有 infinite 微动吗?
-入场 1.5s 内画完吗?三个都「是」才合规。详见 [`../reference/audio-first.md`](../reference/audio-first.md)。
+Duration is driven by `\say`; HTML doesn't know how long the audio is → after the entrance animation runs it's a frozen frame. So run each view through
+hand-drawn-storybook's "entrance budget self-check" trio: still moving after second 2? is the only thing moving the infinite micro-motion?
+drawn within 1.5s of entrance? Only "yes" on all three is compliant. See [`../reference/audio-first.md`](../reference/audio-first.md).
 
-### 5 · 量产纪律
+### 5 · Mass-production discipline
 
-- **样张先行**:先端到端做**第 1 镜**(建项目 → 写 1 镜 → `compile` → `fetch_frame` 看帧 →
-  用户签字「可以」)→ 再批量。角色造型在样张就要敲定。
-- **每写一镜当场 `compile` 看 `block_errors` 再下一镜**(增量编译,别全写完再编)。
-- `main.tex` 骨架先行:全部 view 占位先可编译,再逐镜填。
-- 交付走 [`../workflows/_delivery.md`](../workflows/_delivery.md)。
+- **Sample-first**: make **view 1** end-to-end first (create project → write 1 view → `compile` → `fetch_frame` to see the frame →
+  user signs off "OK") → then batch. The character design must be nailed in the sample.
+- **After writing each view, `compile` on the spot and check `block_errors` before the next view** (incremental compile, don't write all then compile).
+- `main.tex` skeleton first: all views as placeholders compilable first, then fill view by view.
+- Delivery goes via [`../workflows/_delivery.md`](../workflows/_delivery.md).
 
 ---
 
-## 示例 view(寓言体一镜长这样)
+## Example view (a fable-form view looks like this)
 
 ```latex
 \begin{view}
   \say{从前,在百巧城的城门口,住着一个跑腿的小信使。
        他想进城办事,可城里的店家谁也不认识他。}
-  \htmlFile{scenes/fb_01_messenger.html}   % 手绘:城门 + 小信使(描边→填充→bob 微动)
+  \htmlFile{scenes/fb_01_messenger.html}   % hand-drawn: city gate + little messenger (stroke→fill→bob micro-motion)
 \end{view}
 ```
 
@@ -103,16 +102,17 @@ hand-drawn-storybook 的「入场预算自检」三连:第 2 秒后还在动吗?
 \begin{view}
   \say{直到有一天,两边都掏出了同一张通关文牒——
        从此,信使递一递,店家盖个章,门就开了。这,就是 MCP。}
-  \htmlFile{scenes/fb_07_handshake.html}   % 同一个小信使 + 店家,信物对上、门打开
+  \htmlFile{scenes/fb_07_handshake.html}   % the same little messenger + shopkeeper, tokens match, door opens
 \end{view}
 ```
+(The `\say{}` example values above are kept in Chinese on purpose — they demonstrate fable-form narration for a Chinese-topic video; the skill still produces narration in the user's topic language.)
 
 ---
 
-## 自检(这个 skill 做对了没)
+## Self-check (did this skill do it right)
 
-1. 有没有**一张概念→寓言映射表**,且 1:1 不牵强?
-2. 旁白是**故事体**还是说明书体?(说明书体 = 没做对)
-3. 角色全片**同一个造型复现**了吗?
-4. 视觉全程手绘 storybook 一套风格,过了入场预算自检?
-5. 收尾**点题**把寓言拉回了技术概念?
+1. Is there a **concept→fable mapping table**, and is it 1:1, not forced?
+2. Is the narration **story-voice** or manual-voice? (manual-voice = not done right)
+3. Does the character **recur as one design** throughout?
+4. Are the visuals hand-drawn storybook, one consistent style throughout, passing the entrance budget self-check?
+5. Does the ending **land the point**, pulling the fable back to the technical concept?

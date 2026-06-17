@@ -1,10 +1,10 @@
-# 中文 Whisper 常见错字修正
+# Common Chinese Whisper Mis-transcriptions
 
-Whisper 转中文（特别是粤语/普通话混杂、有背景音）会大量同音字错误。**音频本身没问题，转录有问题。** 视觉文字必须用修正版。
+Whisper transcribing Chinese (especially mixed Cantonese/Mandarin, or with background noise) produces a lot of homophone errors. **The audio itself is fine; the transcription is wrong.** On-screen text must use the corrected version.
 
-## 一类：术语/英文转写（高频）
+## Class 1: terminology / English transliterations (high frequency)
 
-| Whisper 输出 | 应当是 |
+| Whisper output | Should be |
 |---|---|
 | LydowWM / 雷威艷 / 雷威 M | LeWM |
 | LoccasMyers | Lucas Maes |
@@ -15,9 +15,9 @@ Whisper 转中文（特别是粤语/普通话混杂、有背景音）会大量�
 | AIRosBIC | Anomaly Signal / 异常警报 |
 | LadenSpaceyS | Latent Space |
 
-## 二类：通用同音错字
+## Class 2: generic homophone errors
 
-| Whisper | 应当是 | 上下文 |
+| Whisper | Should be | Context |
 |---|---|---|
 | 玻璃 | 剥离 | 把…剥离 |
 | 寒暑 | 函数 | 损失函数 |
@@ -57,20 +57,20 @@ Whisper 转中文（特别是粤语/普通话混杂、有背景音）会大量�
 | 動場 | 动力学 | |
 | 貪縮 | 坍缩 | |
 | 堆氣 | 堆砌 | 算力堆砌 |
-| 拆解 | 拆解 ✓ | 别误改 |
+| 拆解 | 拆解 ✓ | don't "correct" this one |
 
-## 三类：数字 / 单位
+## Class 3: numbers / units
 
-| Whisper | 应当是 |
+| Whisper | Should be |
 |---|---|
-| 15000 萬 | 1500 万 (= 15M) — Whisper 经常把"千万"听错 |
+| 15000 萬 | 1500 万 (= 15M) — Whisper often mishears "千万" |
 | 千億 | 千亿 |
 
-## 工作流
+## Workflow
 
-1. 看完整 transcript 一遍
-2. 找出"不通顺"的句子
-3. 用拼音验证候选同音字（pinyin shū / shù → 数 / 暑 / 述 等）
-4. 把替换记进 `<work>/transcript_corrections.md`，每条一行：`错 → 对`
-5. 后续 headline / 视觉文字 / 字幕一律用修正版
-6. **`\audio` 模式下原音频不改**；TTS 模式（`\say`）必须用修正后的文字喂 TTS
+1. Read the full transcript once.
+2. Find the sentences that "don't read right."
+3. Verify homophone candidates by pinyin (pinyin shū / shù → 数 / 暑 / 述 etc.).
+4. Record each replacement in `<work>/transcript_corrections.md`, one per line: `wrong → right`.
+5. All downstream headlines / on-screen text / captions use the corrected version.
+6. **In `\audio` mode the original audio is unchanged**; in TTS mode (`\say`) you must feed the corrected text to TTS.

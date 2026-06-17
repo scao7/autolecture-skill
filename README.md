@@ -62,7 +62,7 @@ optionally attaching an input file:
 
 > "Use the autolecture skill to make a 30-second explainer on Bayes theorem."
 >
-> "做个 autolecture demo" `--include recording.mp3`
+> "Make an autolecture video from my recording." `--include recording.mp3`
 >
 > "Show this paper in the video — flip pages, zoom, highlight." `--include paper.pdf`
 >

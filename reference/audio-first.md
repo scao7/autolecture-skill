@@ -1,101 +1,101 @@
-# Audio-first timing — 三引擎写法对照
+# Audio-first timing — three-engine comparison
 
-**核心原则**：音频长度是 ground truth。视觉适配音频，绝不反过来。
-compiler 编译时已经知道 audio 时长（target_dur），三个引擎各自的适配方式不同。
-这是所有 workflow 共用的铁律（HARD BAN #10），写任何 scene 前先读这页。
+**Core principle**: audio length is ground truth. Visuals adapt to audio, never the other way around.
+At compile time the compiler already knows the audio duration (target_dur); each of the three engines adapts differently.
+This is the iron law shared by every workflow (HARD BAN #10) — read this page before writing any scene.
 
-违反的后果：scene 会出现「动画提前结束 + 后段冻结」或「动画跑得比音频快 → 看不清」。
+Consequences of violating it: scenes show either "animation ends early + frozen tail" or "animation runs faster than audio → too quick to read."
 
 ---
 
-## `\manimFile[retime=true]{}` — compiler AST scale（必须显式开 `retime=true`）
+## `\manimFile[retime=true]{}` — compiler AST scale (must explicitly enable `retime=true`)
 
-⚠️ **2026-05-22 起 `\manimFile` 默认不再自动缩放时长**。手写源码默认按原速渲染（非破坏
-原则——不偷改你的代码），时长对齐交给合成层 hold/trim（音频比动画长 → 冻结末帧；短 →
-截断）。要走 audio-first 自动缩放，**view 里必须写 `\manimFile[retime=true]{path.py}`**。
-**skill 生成的每个 `\manimFile` 一律加 `retime=true`。**
+⚠️ **Since 2026-05-22, `\manimFile` no longer auto-scales duration by default**. Hand-written source renders at native speed by default (non-destructive
+principle — it won't secretly alter your code); duration alignment is left to the compositor's hold/trim (audio longer than animation → freeze last frame; shorter →
+truncate). To get audio-first auto-scaling, **the view MUST write `\manimFile[retime=true]{path.py}`.**
+**Every `\manimFile` the skill generates always adds `retime=true`.**
 
-开了 `retime=true` 后，AutoLecture 对源码跑 `fit_manim_to_target`：扫 `construct()`
-里所有 `self.play(run_time=N)` + `self.wait(N)`，求和得 natural_dur，然后把每个
-`run_time=` 和 `wait()` 按 `target_dur / natural_dur` 倍率统一重写（clamp 在 [0.3×, 4.0×]）。
+With `retime=true` on, AutoLecture runs `fit_manim_to_target` over the source: it scans all `self.play(run_time=N)`
++ `self.wait(N)` in `construct()`, sums them to get natural_dur, then uniformly rewrites every
+`run_time=` and `wait()` by the factor `target_dur / natural_dur` (clamped to [0.3×, 4.0×]).
 
-**写法**：scene 写「自然时长」，view 里写 `\manimFile[retime=true]{...}`，让 scaler 接管：
+**How to write**: write the scene at its "natural duration," write `\manimFile[retime=true]{...}` in the view, and let the scaler take over:
 ```python
 self.play(FadeIn(circle), run_time=1.0)
 self.wait(2.0)
 self.play(circle.animate.scale(1.6), run_time=1.5)
 ```
-**禁止**：
-- 漏写 `retime=true`——scene 不缩放，音频一长画面就冻结（最常见的坑）。
-- 预估「音频 15s 所以 run_time=2.5」——TTS 实际 14.3s 时整片都错。
-- 用 `time.sleep()` 或其它非 Manim 计时——scaler 看不到。
+**Don't**:
+- Omit `retime=true` — the scene won't scale, and the moment the audio is longer the picture freezes (the most common pitfall).
+- Estimate "audio is 15s so run_time=2.5" — when the TTS actually comes out at 14.3s the whole video is off.
+- Use `time.sleep()` or any non-Manim timing — the scaler can't see it.
 
 ---
 
-## `\remotionFile{}` — `useVideoConfig().durationInFrames` 相对时间
+## `\remotionFile{}` — `useVideoConfig().durationInFrames` relative time
 
-compiler 只 override 顶部导出的 `DURATION_FRAMES` 常量，**不改组件 body**。所以
-组件里写死 `interpolate(frame, [0, 30], ...)` 会在 1s 处结束，剩下时间冻结。
+The compiler only overrides the top-level exported `DURATION_FRAMES` constant; **it does not change the component body**. So
+hard-coding `interpolate(frame, [0, 30], ...)` in the component will end at 1s and freeze for the rest.
 
-**写法**：用 `useVideoConfig().durationInFrames` 算 phase 边界：
+**How to write**: compute phase boundaries with `useVideoConfig().durationInFrames`:
 ```tsx
 const { durationInFrames: dur } = useVideoConfig();
 const kickerOp = interpolate(frame, [0, dur * 0.10], [0, 1], { extrapolateRight: 'clamp' });
 const titleOp  = interpolate(frame, [dur * 0.10, dur * 0.20], [0, 1], { extrapolateRight: 'clamp' });
 const accentOp = interpolate(frame, [dur * 0.85, dur], [0, 1], { extrapolateLeft: 'clamp' });
 ```
-**禁止**：硬编码绝对帧号（`[0, 30]`, `[60, 90]`）。
+**Don't**: hard-code absolute frame numbers (`[0, 30]`, `[60, 90]`).
 
 ---
 
-## `\htmlFile{}` — 短入场 + 持续微动态
+## `\htmlFile{}` — short entrance + continuous micro-motion
 
-compiler **不改 CSS keyframes**。Playwright 录制 `target_duration` 秒整页面；
-CSS 动画结束之后就是 frozen frame。
+The compiler **does not change CSS keyframes**. Playwright records the full page for `target_duration` seconds;
+once the CSS animation ends, you get a frozen frame.
 
-**写法**：
-1. **入场动画在 1.0–1.5s 内全部结束**（用错位 `animation-delay`：0.2s / 0.4s / 0.6s）。
-2. **保留至少一个 element 持续微动态**（缓慢 pulse / 横向 scan / drift）—— 长音频时
-   画面有「呼吸感」，不会变成静止图。
-3. **禁止排长队的 sequential delays**（`delay: 0s; 4s; 8s; 12s`）—— 如果 audio 实际
-   5s，后面的 element 永远不显示。
+**How to write**:
+1. **All entrance animation finishes within 1.0–1.5s** (use staggered `animation-delay`: 0.2s / 0.4s / 0.6s).
+2. **Keep at least one element in continuous micro-motion** (slow pulse / horizontal scan / drift) — so long audio
+   keeps the picture "breathing" instead of becoming a still image.
+3. **No long queues of sequential delays** (`delay: 0s; 4s; 8s; 12s`) — if the audio is actually
+   5s, the later elements never appear.
 
-`templates/scene_html.html.tpl` 的 `.accent-pulse` + `.underline-scan` 是默认的
-「呼吸 + sheen」骨架。
+`templates/scene_html.html.tpl`'s `.accent-pulse` + `.underline-scan` are the default
+"breathe + sheen" skeleton.
 
 ---
 
-## 硬时序预算：入场 ≤1.5s，之后只剩循环微动
+## Hard timing budget: entrance ≤1.5s, then only looping micro-motion
 
-HTML/SVG 场景的时长由 `\say` 旁白驱动——旁白一开口，画面就得**基本到位**。
-所以入场动画不能拖长，否则「话都讲到一半了，图还在一笔一笔画」。
+The duration of an HTML/SVG scene is driven by the `\say` narration — the moment the narration starts, the picture must be **basically in place.**
+So the entrance animation can't drag on, or you get "the narration is halfway through and the figure is still being drawn stroke by stroke."
 
-**预算**：
+**Budget**:
 
-| 阶段 | 时间窗 | 放什么 |
+| Phase | Time window | What goes here |
 |---|---|---|
-| 入场（draw / fade / rise） | **≤ 约 1.5s** | 描边 `@keyframes draw`、填充 fade-in、标题 rise——一次性画完 |
-| 持续段（剩余全部时长） | 1.5s 之后 | **只**留 `bob` / `sway` / `spin` 一类**循环微动**填满，不再有「新东西出现」 |
+| Entrance (draw / fade / rise) | **≤ ~1.5s** | stroke `@keyframes draw`, fill fade-in, title rise — draw it all once |
+| Sustain (all remaining duration) | after 1.5s | **only** looping micro-motion like `bob` / `sway` / `spin` to fill; no more "new things appearing" |
 
-**写法**：入场用错峰 `animation-delay`（0.2s / 0.4s / 0.6s），保证最迟一条线也在 ~1.5s 画完；
-之后所有动态都是 `animation-iteration-count: infinite` 的小幅循环：
+**How to write**: stagger the entrance with `animation-delay` (0.2s / 0.4s / 0.6s) so even the last line finishes drawing by ~1.5s;
+afterward all motion is a small-amplitude loop with `animation-iteration-count: infinite`:
 
 ```css
-/* 入场：1s 画线 + 0.6s 错峰，最迟 1.6s 内完成 */
+/* entrance: 1s draw line + 0.6s stagger, finishes within 1.6s at the latest */
 .stroke { animation: draw 1s ease forwards; }
 .stroke.s2 { animation-delay: 0.4s; }
-.fill { animation: fade 0.8s ease 1s forwards; }   /* 线条之后才填充 */
+.fill { animation: fade 0.8s ease 1s forwards; }   /* fill only after the lines */
 
-/* 持续：只剩循环微动，无限循环 */
+/* sustain: only looping micro-motion, infinite loop */
 .char { animation: bob 2.6s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-6px); } }
 ```
 
-**禁止**：把入场拖到 3s+、或让元素一个接一个慢慢登场（sequential delays）——
-旁白早讲完那段了，画面还在补帧。
+**Don't**: drag the entrance out to 3s+, or have elements appear slowly one after another (sequential delays) —
+the narration finished that line long ago while the picture is still filling in frames.
 
-**自检（写完每个 HTML/SVG 场景念一遍）**：
-> **入场 ≤1.5s，之后只剩循环微动。**
+**Self-check (recite after writing each HTML/SVG scene)**:
+> **Entrance ≤1.5s, then only looping micro-motion.**
 
-手绘 storybook 的描边/填充/钢笔抖动/bob-sway-spin 全套技法见
-[`hand-drawn-storybook.md`](hand-drawn-storybook.md)——那套节奏正好踩在这个预算里。
+The full hand-drawn storybook toolkit (stroking / filling / pen jitter / bob-sway-spin) is in
+[`hand-drawn-storybook.md`](hand-drawn-storybook.md) — that rhythm lands right inside this budget.

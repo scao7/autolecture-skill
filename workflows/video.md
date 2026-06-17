@@ -1,128 +1,128 @@
-# Workflow · 用户提供视频 → 视频（用原视频音频，不做 TTS）
+# Workflow · User provides video → video (use the original video's audio, no TTS)
 
-**入口**：用户给一段**实拍视频**（口播 talking-head、操作录屏、产品镜头）。
-大概率用户想**用原始视频**，所以**不做 TTS** —— 直接拿视频自带的音频当 ground truth。
+**Entry**: user gives a piece of **live-action video** (talking-head, screen-capture demo, product shots).
+Most likely the user wants to **use the original video**, so **no TTS** — take the video's built-in audio as ground truth.
 
-> 仍然是**音频驱动**：视频里的人声是时间轴的脊柱，画面（保留实拍 / 切到我们的素材 / 叠加动效）都围着它排。
+> Still **audio-driven**: the human voice in the video is the spine of the timeline; the visuals (keep live-action / cut to our assets / overlay motion graphics) all arrange around it.
 
-> ⚠️ **剪辑全用 .tex 表达,绝不预剪素材**（HARD BAN #11）。原始视频**整个**当 asset，
-> 选段用 `\video[start=, end=]{原片}` / `\audio[start=, end=]{原片}`（编译器从原片取窗口,
-> 原片不动）、拼接用 view 顺序、转场用 `\fade`。**不要**在外面 ffmpeg 切片/拼接/变速再丢进来 ——
-> 那会把剪辑烧死在文件里、绕过 .tex（P1 LaTeX 唯一真相 / 预览即导出）。
+> ⚠️ **Express all editing in .tex, NEVER pre-cut assets** (HARD BAN #11). The whole original video goes in as one asset;
+> select a window with `\video[start=, end=]{original}` / `\audio[start=, end=]{original}` (the compiler takes the window from the original,
+> the original is untouched), splice via view order, transition via `\fade`. **Do not** ffmpeg-slice/splice/retime outside and then drop it in —
+> that bakes the edit into the file, bypassing .tex (P1 LaTeX is the single source of truth / preview equals export).
 
-> 🎥 **录屏+摄像头（Tella 式）素材是三个文件**：站内录制的 `screen_cam` 模式
-> 产出 `{name}.webm`（圆角头像合成预览，仅供快速回看）+ **`{name}.screen.webm` +
-> `{name}.camera.webm` 两条完整原始轨**。要做画中画编排时**永远用两条原始轨**
-> （[`templates/scene_screencast_pip.tsx.tpl`](../templates/scene_screencast_pip.tsx.tpl)：
-> SCREEN_FILE/WEBCAM_FILE 指向两个文件，PIP_SCALE/PIP_CORNER/PIP_MARGIN/
-> MORPH_START/MORPH_END 全部可调，含全屏头像→缩角的 morph），合成预览那个文件
-> 不要进正片。布局拿不准就 `fetch_asset_frame` 先看两条轨的画面再定参数。
+> 🎥 **Screen-capture + camera (Tella-style) assets are three files**: in-app `screen_cam` mode recording
+> produces `{name}.webm` (rounded-corner avatar composite preview, for quick review only) + **`{name}.screen.webm` +
+> `{name}.camera.webm`, two full raw tracks**. When composing a picture-in-picture layout **always use the two raw tracks**
+> ([`templates/scene_screencast_pip.tsx.tpl`](../templates/scene_screencast_pip.tsx.tpl):
+> SCREEN_FILE/WEBCAM_FILE point at the two files, PIP_SCALE/PIP_CORNER/PIP_MARGIN/
+> MORPH_START/MORPH_END all tunable, includes the fullscreen-avatar→corner-shrink morph); don't put that composite preview file
+> into the finished video. If you're unsure of the layout, `fetch_asset_frame` to look at the two tracks first, then set parameters.
 
-> 📝 **配字幕 = 写素材级文稿**：`transcribe` 拿词级时间戳 → 把校正后的整段文稿
-> `write_file` 到 `{media}.transcript.txt` → 引用该素材的所有 view 自动派生字幕
-> （窗口切片 + 满屏断句 + 默认去标点）。不要把字幕写进 clip.tex / main.tex。
+> 📝 **Captioning = writing an asset-level transcript**: `transcribe` to get word-level timestamps → `write_file` the corrected full transcript
+> to `{media}.transcript.txt` → every view that references that asset auto-derives captions
+> (window slicing + full-screen line breaking + punctuation stripped by default). Don't write captions into clip.tex / main.tex.
 
-> 📚 **多镜复用同一段素材 → 进 clip 库**（剪辑素材的 BibTeX）：粗剪结果集中写
-> `clips/*.tex` 的 `\begin{segment}{name}`（trim + 可选 `\caption`），main.tex 导言区
-> `\cliplibrary{clips/day1}` 声明后用 `\video{@name}` 引用；只剪一刀就直接内联
-> `\video[start=, end=]`。这样人后续在 Studio 微调剪点/字幕时改的是同一份 .tex。
-> 语法详见 [`reference/dsl-cheatsheet.md`](../reference/dsl-cheatsheet.md) 的 clip 库一节。
+> 📚 **Reusing the same asset across multiple views → put it in a clip library** (a BibTeX for editing assets): collect the rough-cut results into
+> `clips/*.tex` as `\begin{segment}{name}` (trim + optional `\caption`); in the main.tex preamble declare
+> `\cliplibrary{clips/day1}` then reference with `\video{@name}`; for a single cut just inline
+> `\video[start=, end=]`. This way, when a person later fine-tunes cut points / captions in Studio, they edit the same .tex.
+> See the clip-library section of [`reference/dsl-cheatsheet.md`](../reference/dsl-cheatsheet.md) for syntax.
 
 ---
 
-## 步骤
+## Steps
 
-### 0 · 用 SKILL.md 入口已确认的运行模式
+### 0 · Use the run mode already confirmed at the SKILL.md entry
 
-> **运行模式已在 SKILL.md 入口 ① 定下**(mcp / zip)。
+> **The run mode was already set at SKILL.md entry ①** (mcp / zip).
 
-**这条 workflow 不做 TTS**(用原片自带音频),所以**不需要查 voice clone 状态**——`voice=mine` 跟这条 workflow 无关。
+**This workflow does no TTS** (uses the original's built-in audio), so **no need to check voice clone status** — `voice=mine` is irrelevant to this workflow.
 
-⚠️ **资产大小注意**:原片 ≥ 100MB(几乎所有 1080p+ 视频)→ 都得**转码代理片**(720p H.264 < 100MB)才能通过 zip / MCP 上传。详见 [HARD BAN #11 例外条款](../SKILL.md) + memory `large-media-upload-constraint`。
+⚠️ **Asset-size note**: original ≥ 100MB (nearly every 1080p+ video) → must **transcode a proxy** (720p H.264 < 100MB) to pass zip / MCP upload. See [HARD BAN #11 exception clause](../SKILL.md) + memory `large-media-upload-constraint`.
 
-### 1 · 准备工作目录 + 分析音频
+### 1 · Prepare work directory + analyze audio
 ```bash
 WORK=/tmp/autolecture_$(date +%s); mkdir -p $WORK/{scenes,figures}
-# 视频当 asset 放进 <work>/，如 clip.mp4
+# put the video in as an asset under <work>/, e.g. clip.mp4
 python3 scripts/transcribe.py --audio <clip.mp4> --out <work>/clip.mp4.whisper.json
 ```
-转录**视频自带音频**（用于定位 + 字幕 + 切分），修转录错字（[`../reference/typo-fixes.md`](../reference/typo-fixes.md)）。**不重写、不重合成**——音频保持原状。
+Transcribe the **video's built-in audio** (for locating + captions + segmentation), fix transcription typos ([`../reference/typo-fixes.md`](../reference/typo-fixes.md)). **No rewrite, no re-synthesis** — audio stays as-is.
 
-### 2 · 按音频拆分 beat
-用 [`scripts/find_beats.py`](../scripts/find_beats.py) 在 transcript 里搜锚句，得到每段的 `[start, end]`。相邻锚句之间 = 一镜。输出 `<work>/beat_plan.md`。
+### 2 · Split into beats by audio
+Use [`scripts/find_beats.py`](../scripts/find_beats.py) to search anchor sentences in the transcript, getting each segment's `[start, end]`. Between adjacent anchor sentences = one view. Output `<work>/beat_plan.md`.
 
-### 3 · 问用户：叠加特效 还是 剪辑结合？
-这是视频流程的关键分叉，用 AskUserQuestion 问（或按线索判断）：
+### 3 · Ask the user: overlay effects or intercut edit?
+This is the key fork of the video flow; ask via AskUserQuestion (or judge from clues):
 
-| 模式 | 用户想要 | 怎么排 |
+| Mode | What the user wants | How to arrange |
 |---|---|---|
-| **A · 叠加（overlay）** | "在我这段视频**上面**加字幕条 / 数据卡 / 箭头" | 每镜 `\video{clip}` + `\remotionFile[over=true]{}`，**半透明毛玻璃**动效叠在实拍上 |
-| **B · 剪辑结合（intercut）** | "把我的口播和讲解画面**剪在一起**" | 音频为主轴：该露脸时放 talking-head，该讲概念时切到我们写的素材 scene |
-| **C · Tella 录屏 + 画中画** | 有**两段素材**（录屏 + 头像），要那种"头像从全屏缩进角落、录屏接管"的丝滑切 | 一个 view 里一个 `\remotionFile{}` scene 同时载入两段，`interpolate` 做全屏↔小窗 morph |
+| **A · Overlay** | "Add a caption bar / data card / arrow **on top of** my video" | Per view `\video{clip}` + `\remotionFile[over=true]{}`, **semi-transparent frosted-glass** motion layered over the live-action |
+| **B · Intercut** | "**Cut together** my talking-head and the explanatory visuals" | Audio as spine: show talking-head when the face should be on screen, cut to our authored scene when a concept needs visualizing |
+| **C · Tella screen-capture + PiP** | Has **two assets** (screen-capture + avatar), wants that smooth "avatar shrinks from fullscreen into the corner, screen-capture takes over" cut | One view, one `\remotionFile{}` scene loads both at once, `interpolate` does the fullscreen↔small-window morph |
 
 ---
 
-## 模式 A · 叠加特效（frosted-glass overlay）
+## Mode A · Overlay effects (frosted-glass overlay)
 
-同一个 view 里放两层视觉：**实拍底**（`\video`，自带原声 = 脊柱）+ **透明动效覆盖层**（`\remotionFile[over=true]`）。Remotion 把动效渲成**透明 alpha 素材**，由 **manifest 叠**在实拍上 —— 引擎只产素材，叠加编排全在 VideoTeX/manifest（预览即导出）。
-
-```latex
-\begin{view}
-  \video[start=0, end=8.5]{clip.mp4}                  % 实拍底 + 自带原声 = 脊柱
-  \remotionFile[over=true]{scenes/overlay_01.tsx}      % 透明动效覆盖层
-  % 可选：额外叠加配音/背景乐（音频叠加,不替换原声）
-  % \say[volume=1.2]{补充说明……}
-\end{view}
-```
-
-- 模板 [`../templates/scene_overlay.tsx.tpl`](../templates/scene_overlay.tsx.tpl)。**半透明毛玻璃**：面板用低透明度填充（alpha 0.30–0.50）+ 浅色描边 + 顶部 sheen，让实拍透过来。
-- **机制**：`over=true` 只是个**渲染提示** —— 让 Remotion 渲成透明 webm（alpha）。**引擎完全不碰实拍**；把 alpha 叠到 `\video` 上是 manifest 的事。这一镜时长由 `\video`（自带音频）决定（audio-first）；想去原声用 `\video[mute=on]`。
-- 两条铁律：① 覆盖层根 `AbsoluteFill` 绝不设不透明 `backgroundColor`（否则盖住实拍）；② 只给图形元素本身上背景。
-- 音频叠加：实拍原声 + `\say` + `\bgm` 一起 mix（用各自 `volume=` 调比例）。`over=true` 对 `\remotion` 和 `\remotionFile` 都有效。
-
-## 模式 B · 剪辑结合（intercut，音频驱动）
-
-用户的口播音频是**连续主轴**，画面在「露脸」和「我们的素材」之间切。哪一拍露脸、哪一拍上素材由音频内容决定（讲到需要可视化的概念 → 切素材；个人观点 / 镜头感强的段落 → 露脸）。
-
-- **露脸镜**：直接放实拍片段（含原声）：
-  ```latex
-  \begin{view}
-    \video[start=0, end=8.5]{clip.mp4}     % talking-head，原声跟随
-  \end{view}
-  ```
-- **素材镜**：切到我们手写的 scene，**底下铺这一段的原声**（从同一视频音频里剪那一段）：
-  ```latex
-  \begin{view}
-    \audio[start=8.5, end=15.2]{clip.mp4}  % 用户这一段的人声
-    \htmlFile{scenes/scene_concept.html}    % 我们写的讲解画面
-  \end{view}
-  ```
-- 两种镜交替排满整条音频时间轴，`start/end` 首尾相接（不留缝、不重叠）。素材镜的画面 audio-first（跟 `\audio` 时长，见 [`../reference/audio-first.md`](../reference/audio-first.md)）。
-- 选引擎 / 手写 scene 同 [`text-to-lecture.md`](text-to-lecture.md) 步骤 3–4，统一调色板 [`../reference/palette.md`](../reference/palette.md)。
-
-## 模式 C · Tella 录屏 + 头像画中画（全屏↔小窗 morph）
-
-用户有**两段素材**（一段录屏 + 一段对着摄像头的口播），想要那种很丝滑的
-Tella 效果：开场头像铺满全屏自我介绍，然后**缩进角落变成小窗**、录屏接管画面。
-
-关键认知：**这个「缩小」是一镜之内的 morph，必须放在同一个 `view` 里**。一个
-`\remotionFile{}` scene 同时载入两段视频，用 `interpolate` 把头像的 scale /
-位置 / 圆角随时间插值。这**不是** `over=` 叠加（叠加层是独立透明渲染、引擎碰不到
-实拍）—— 这一镜里 scene 自己把两段合成。manifest 只在 **view 边界**做切 / 淡，
-所以跨两个 view 做不出这种 morph。
+Two visual layers in one view: **live-action base** (`\video`, carries the original audio = spine) + **transparent motion overlay** (`\remotionFile[over=true]`). Remotion renders the motion as a **transparent alpha asset**, and the **manifest layers** it over the live-action — the engine only produces the asset; all overlay composition lives in VideoTeX/manifest (preview equals export).
 
 ```latex
 \begin{view}
-  \remotionFile{scenes/screencast_01.tsx}   % 同时载入 screen.mp4 + webcam.mp4
-  \audio{webcam.mp4}                          % 人声 = 脊柱 + 决定这一镜时长
+  \video[start=0, end=8.5]{clip.mp4}                  % live-action base + original audio = spine
+  \remotionFile[over=true]{scenes/overlay_01.tsx}      % transparent motion overlay
+  % optional: extra voiceover / background music (audio overlay, does not replace original audio)
+  % \say[volume=1.2]{supplementary note……}
 \end{view}
 ```
 
-- 模板 [`../templates/scene_screencast_pip.tsx.tpl`](../templates/scene_screencast_pip.tsx.tpl)。两段都 `staticFile()` 直接载入、scene 里都 `muted`（scene 只出画面、不带音频）。
-- **音频**：人声来自 `\audio{webcam.mp4}`（同一头像文件当音轨脊柱）；它也定这一镜时长，编译器据此覆盖 `DURATION_FRAMES`，所以模板里用 `dur` 的分数表达的 morph 时间点会自动对齐。录屏自带系统音（点击声 / demo 声）也想要的话，再加一条 `\audio[...]{screen.mp4}`（叠加 mix，不替换）。
-- 模板参数：`PIP_SCALE`（小窗占比 0.22–0.30）、`PIP_CORNER`（br/bl/tr/tl）、`MORPH_START/END`（0..1，缩小动作发生在片段的哪一段）。要反向（结尾再放大回全屏脸）/ 加标题条 / 录屏 punch-in 放大，模板里搜 `VARIANT` 注释。
+- Template [`../templates/scene_overlay.tsx.tpl`](../templates/scene_overlay.tsx.tpl). **Semi-transparent frosted glass**: fill panels with low opacity (alpha 0.30–0.50) + light stroke + top sheen so the live-action shows through.
+- **Mechanism**: `over=true` is just a **render hint** — it tells Remotion to render a transparent webm (alpha). **The engine never touches the live-action**; layering the alpha onto `\video` is the manifest's job. This view's duration is decided by `\video` (its built-in audio) (audio-first); to drop the original audio use `\video[mute=on]`.
+- Two iron rules: ① the overlay's root `AbsoluteFill` must never set an opaque `backgroundColor` (it would cover the live-action); ② only give the graphic elements themselves a background.
+- Audio overlay: original live-action audio + `\say` + `\bgm` mix together (use each one's `volume=` to set the ratio). `over=true` works for both `\remotion` and `\remotionFile`.
+
+## Mode B · Intercut (audio-driven)
+
+The user's talking-head audio is the **continuous spine**; the visuals cut between "face on screen" and "our assets". Which beat shows the face and which beat shows assets is decided by the audio content (hits a concept that needs visualizing → cut to assets; personal opinion / cinematically strong passage → show the face).
+
+- **Face beat**: drop the live-action clip directly (with original audio):
+  ```latex
+  \begin{view}
+    \video[start=0, end=8.5]{clip.mp4}     % talking-head, original audio follows
+  \end{view}
+  ```
+- **Asset beat**: cut to a scene we authored, **with this segment's original audio underneath** (cut that segment from the same video audio):
+  ```latex
+  \begin{view}
+    \audio[start=8.5, end=15.2]{clip.mp4}  % the user's voice for this segment
+    \htmlFile{scenes/scene_concept.html}    % the explanatory visual we authored
+  \end{view}
+  ```
+- When the two kinds of beats alternate to fill the whole audio timeline, `start/end` butt end-to-end (no gaps, no overlaps). Asset-beat visuals are audio-first (follow the `\audio` duration, see [`../reference/audio-first.md`](../reference/audio-first.md)).
+- Picking engines / hand-writing scenes is the same as [`text-to-lecture.md`](text-to-lecture.md) steps 3–4, with the unified palette [`../reference/palette.md`](../reference/palette.md).
+
+## Mode C · Tella screen-capture + avatar PiP (fullscreen↔small-window morph)
+
+The user has **two assets** (one screen-capture + one talking-into-camera), and wants that smooth
+Tella effect: opens with the avatar filling the screen for a self-intro, then **shrinks into the corner as a small window** while the screen-capture takes over.
+
+Key insight: **this "shrink" is a morph within one beat and must live in the same `view`**. One
+`\remotionFile{}` scene loads both videos at once, using `interpolate` to interpolate the avatar's scale /
+position / corner-radius over time. This is **not** an `over=` overlay (an overlay layer is an independent transparent render the engine can't touch) —
+in this beat the scene itself composites the two clips. The manifest only cuts / fades at **view boundaries**,
+so a morph can't be done across two views.
+
+```latex
+\begin{view}
+  \remotionFile{scenes/screencast_01.tsx}   % loads screen.mp4 + webcam.mp4 at the same time
+  \audio{webcam.mp4}                          % voice = spine + decides this view's duration
+\end{view}
+```
+
+- Template [`../templates/scene_screencast_pip.tsx.tpl`](../templates/scene_screencast_pip.tsx.tpl). Both loaded directly via `staticFile()`, both `muted` in the scene (the scene only shows visuals, carries no audio).
+- **Audio**: the voice comes from `\audio{webcam.mp4}` (the same avatar file as the audio-track spine); it also sets this view's duration, and the compiler overrides `DURATION_FRAMES` from it, so morph timing points expressed as fractions of `dur` in the template auto-align. If you also want the screen-capture's system audio (click sounds / demo sounds), add another `\audio[...]{screen.mp4}` (overlay mix, does not replace).
+- Template parameters: `PIP_SCALE` (small-window ratio 0.22–0.30), `PIP_CORNER` (br/bl/tr/tl), `MORPH_START/END` (0..1, which part of the clip the shrink happens in). To reverse it (zoom back to fullscreen face at the end) / add a title bar / punch-in zoom the screen-capture, search the `VARIANT` comments in the template.
 
 ---
 
-## README + 交付
-视频片段列入包含项。然后 → **交付：见 [`_delivery.md`](_delivery.md)**。
+## README + delivery
+The video clip goes into the included items. Then → **delivery: see [`_delivery.md`](_delivery.md)**.

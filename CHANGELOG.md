@@ -7,6 +7,15 @@ agent 连上 `mcp.autolecture.ai/mcp` 后调 `server_info`，把返回的
 语法真相以 MCP 的 `get_dsl_spec` 为准；bundled `harness/spec/dsl.json`
 只是 zip/离线模式的 fallback。
 
+## 0.11.0 — 2026-06-17
+
+- **English-first.** Translated the whole skill to English for the US Claude Code
+  marketplace — SKILL.md (incl. the `description` frontmatter that shows in the
+  listing), all `reference/`, `workflows/`, and `genre-skills/`. Instructions are
+  English-PRIMARY; output still follows the user's topic language. Intentional
+  Chinese example VALUES are kept (Whisper-typo tables, `\say` example narrations
+  for Chinese-topic demos, platform names like Bilibili/Douyin).
+
 ## 0.10.1 — 2026-06-17
 
 - **商城 playbook 同步开放/封闭分层**(`reference/marketplace.md`):
