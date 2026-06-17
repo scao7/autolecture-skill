@@ -7,6 +7,15 @@ agent 连上 `mcp.autolecture.ai/mcp` 后调 `server_info`，把返回的
 语法真相以 MCP 的 `get_dsl_spec` 为准；bundled `harness/spec/dsl.json`
 只是 zip/离线模式的 fallback。
 
+## 0.10.1 — 2026-06-17
+
+- **商城 playbook 同步开放/封闭分层**(`reference/marketplace.md`):
+  `list_gallery_templates`/搜索**只列官方(curated)题材**;用户发布的社区模版
+  `official=false`+`unlisted`,**只能按确切 slug 加载**,不进模糊浏览列表。
+  用户报具体社区模版名时别模糊匹配——按确切 slug 直接 `get_template_card`/
+  `use_gallery_template`(两者解析任意 id)。
+- **dsl.json drift fix**:`\image` / `\imageFile` 补上 `style` opt(从后端 spec.py regen)。
+
 ## 0.10.0 — 2026-06-13
 
 - 入口加 **freestyle / 模版商城分叉**(入口 ②):定好运行模式后先问用户「自由创作」
