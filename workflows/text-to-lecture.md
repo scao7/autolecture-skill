@@ -44,17 +44,23 @@ WORK=/tmp/autolecture_$(date +%s); mkdir -p $WORK/{scenes,figures}
 | 2 | ~38s | Three core numbers   | HTML     | Three-column cards stagger-reverse |
 ```
 
-### 4 · main.tex skeleton first (**before writing any visuals**, build it and immediately land it in the cloud)
+### 4 · Root skeleton first (**before writing any visuals**, build it and immediately land it in the cloud)
 
-> Hard-won lesson: leaving main.tex assembly to the end = the project is long not in a "compilable state", and a mid-flow disconnect / resume leaves a pile of scraps. **The skeleton must be built and committed before you write the first scene's source.**
+> Hard-won lesson: leaving root assembly to the end = the project is long not in a "compilable state", and a mid-flow disconnect / resume leaves a pile of scraps. **The skeleton must be built and committed before you write the first scene's source.**
 
 1. **Build the skeleton first**: turn every beat cut in step 3 into one `\begin{view}…\end{view}`, view count = beat count (not one fewer). In each view first put:
    - **Placeholder `\say{}`**: fill in **the corresponding segment of the finalized voiceover text** (narration is in the view from second one, not floating in a draft).
    - **Placeholder `\htmlFile{}`** (or the corresponding engine file): point at a **not-yet-written** filename `scenes/scene_NN_label.html`.
 2. **`\say` and visual always co-located**: from the start, `\say{}` sits in the **same view** as its `\htmlFile{}` (or `\manimFile`/`\remotionFile`), narration and visual bound together, never decoupled. Later you only swap file contents, never re-cut narration.
 3. **Commit / write to cloud immediately**:
-   - **mcp mode**: `write_file("main.tex", <full skeleton>)` — at this point the cloud already holds a project with **all views present and compilable** (the files aren't written yet, so compiling will error on those blocks, but the structure is there). Then fill view by view, following the **incremental loop** of [`_delivery.md`](_delivery.md) path A (each finished scene file → `write_file` → immediately `compile` that block).
-   - **zip mode**: write the skeleton into `<work>/main.tex`, fill in scene files one by one under `<work>/scenes/`.
+   - **mcp mode (JSON-canonical)**: a "view" here = a SHOT. `set_project(title,
+     aspect_ratio, style)` once, then author shot by shot per [`_delivery.md`](_delivery.md)
+     path A's incremental loop: `upsert_shot(id, duration, description, engine, src,
+     say_text)` — the `\say{}` becomes `say_text`, the `\htmlFile`/`\manimFile`/
+     `\remotionFile` becomes the base-layer `engine` + the `src` code file — then
+     `write_file(src, …)` the scene code, then `render_shot(id, storyboard=true)` on
+     the spot. (No `storyboard.tex` skeleton, no `commit_files`/`.tex` writes.)
+   - **zip mode**: write the skeleton into `<work>/main.tex` (VideoTeX), fill in scene files one by one under `<work>/scenes/`.
 
 Skeleton example (placeholder narration + placeholder filenames, all views built):
 ```latex
@@ -74,7 +80,7 @@ Skeleton example (placeholder narration + placeholder filenames, all views built
 \end{videotex}
 ```
 
-> Naming discipline: **one project uses one prefix only** (e.g. all `scene_NN_`); when replacing an old version `delete_file`/archive it as you go, don't let two naming schemes coexist — on resume, "which is the official one" rests entirely on the view order in main.tex.
+> Naming discipline: **one project uses one prefix only** (e.g. all `scene_NN_`); when replacing an old version `delete_file`/archive it as you go, don't let two naming schemes coexist — on resume, "which is the official one" rests entirely on the view order in the active root source.
 
 ### 5 · Assign visuals to each segment by "the voiceover's point and meaning" + pick an engine
 Read [`../reference/engine-routing.md`](../reference/engine-routing.md). **The visual must hook this beat's voiceover point and meaning**, not generic illustration: mentions a number → large-type reversal; mentions a process → card cross-fade; mentions collapse → point cloud contracting. Quick reference: large type / numbers / typewriter → Remotion; titles / cards / tables / flows → HTML; 3D / formulas / geometry → Manim; faces / scenery → `\image[engine=gemini]`. **Default to HTML** (fastest, most stable).
@@ -106,9 +112,9 @@ Mapping table example:
 
 > The most valuable step: **make just 1 sample view end-to-end, get sign-off, then mass-produce the rest.** Doing the full set first only to find the style is wrong = a dozen-view redo + a wasted full compile.
 
-1. **Pick a representative view** (the beat with the most characters / elements), **hand-write just that one** scene file, fill it into its view.
-2. **Render**: mcp mode `compile` renders just that block; zip mode does a local sample compile.
-3. **Frame-check**: `fetch_frame` to pull the PNG of this view and see the actual result. The three counter-intuitive points are in [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md) (`scene_id` takes that block's `content_hash`, the result lands as a big JSON, the PNG base64 hides in `inner["image"]["data"]`).
+1. **Pick a representative shot** (the beat with the most characters / elements), **hand-write just that one** scene file (`upsert_shot` + `write_file` the code).
+2. **Render**: mcp mode `render_shot(id, storyboard=true)` renders just that shot's still; zip mode does a local sample compile.
+3. **Frame-check**: read the still back from `get_state()` → `shots[].render.still` (the URL the render folded in) — no `fetch_frame` / base64 decode. See [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md).
 4. **Get sign-off**: send the sample frame to the user (or self-check) and get an explicit "OK". **No sign-off, no mass production.**
 5. After sign-off → only then enter step 7 to batch hand-write the remaining views.
 
@@ -116,12 +122,12 @@ Mapping table example:
 Skeletons in [`../templates/`](../templates/). **Strictly hand-write, do not call the LLM to emit code** (HARD BAN #1). Unified palette [`../reference/palette.md`](../reference/palette.md) + font stack; the **audio-first iron rule** is in [`../reference/audio-first.md`](../reference/audio-first.md); each scene designed independently (HARD BAN #2), ≤60s, named `scene_NN_label.<ext>` (carry over the prefix from the step 4 skeleton, one scheme throughout).
 
 - **Hand-drawn storybook style** (whole-video unified hand-drawn SVG/HTML): technique in [`../reference/hand-drawn-storybook.md`](../reference/hand-drawn-storybook.md) (stroke `pathLength=1` + `draw` keyframe, `feTurbulence` pen jitter, bob/sway continuous micro-motion, cream/navy/tan brand colors).
-- **`\manimFile` must be `[retime=true]`**; `\say` ≤400 chars, captions off by default (need `\say[burn=on]` to burn).
-- Each finished scene file: in mcp mode immediately `write_file` + `compile` that block on the spot (incremental loop, see [`_delivery.md`](_delivery.md)), don't pile it up to the end.
+- Narration (`say_text`) ≤400 chars; captions off by default (set `say_burn=true` to burn). zip mode keeps the VideoTeX `[retime=true]` / `\say[burn=on]` spellings.
+- Each finished shot: in mcp mode immediately `upsert_shot` it + `write_file` its scene code + `render_shot(id, storyboard=true)` on the spot (incremental loop, see [`_delivery.md`](_delivery.md)). Don't pile work up to the end.
 
-> **Single-view preview during dev, full compile only at the end**: full compile is expensive and slow (each view synthesizes TTS + real-time records on the fly; the first full compile of a dozen views can hit hundreds of credits). During dev only render the block you changed; **warn the user of the cost magnitude before a full compile**. For the specifics of single-view preview (the sub-tex must be a body fragment, temporarily overwrite main.tex into a single-view document) see [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md).
+> **Single-view preview during dev, full compile only at the end**: full compile is expensive and slow (each view synthesizes TTS + real-time records on the fly; the first full compile of a dozen views can hit hundreds of credits). During dev only render the block you changed; **warn the user of the cost magnitude before a full compile**. For the specifics of single-view preview (the sub-tex must be a body fragment, temporarily overwrite the active root into a single-view document) see [`../reference/compile-and-preview.md`](../reference/compile-and-preview.md).
 
 ### 8 · Full compile + README + delivery
 Sample signed off, remaining views all filled → compile the whole video (in mcp mode, if every block was rendered in step 7, this step basically all hits cache). Use [`../templates/README.md.tpl`](../templates/README.md.tpl) to write the "how to use". Then → **delivery: see [`_delivery.md`](_delivery.md)**.
 
-> **resume / continuation**: after a conversation is interrupted and reconnected, **the first action must be `get_snapshot`**, taking the cloud project's actual files + `main.tex` as the single source of truth; treat "everything already written" in the summary / memory only as a clue, and verify with `read_file` one by one. See [`../reference/resume-checklist.md`](../reference/resume-checklist.md).
+> **resume / continuation**: after a conversation is interrupted and reconnected, **the first action must be `get_state`**, taking the cloud project's ProjectState shots + their scene code as the single source of truth; treat "everything already written" in the summary / memory only as a clue, and verify with `read_file` one by one. See [`../reference/resume-checklist.md`](../reference/resume-checklist.md).

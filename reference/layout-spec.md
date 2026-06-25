@@ -123,10 +123,10 @@ The old L3 Playwright render probes (`html_overflow_render` /
 `html_text_overlap`) were removed 2026-06-09. To verify layout, render
 on the server and LOOK at it:
 
-1. `compile` (or `render_scene` for one scene)
-2. `fetch_frame(project_id, scene_id, t)` → a PNG of the actual rendered
+1. `render_shot(shot_id, storyboard=true)` (one shot) — or `compile` for the whole film
+2. Read `get_state()` → `shots[].render.still` → the PNG of the actual rendered
    frame — check for clipped text, overflow past the safe zone, collisions
-3. Fix the scene file via `edit_file`, `render_scene` again
+3. Fix the scene file via `write_file(src, …)`, `render_shot` again
 
 This is both more accurate (it's the real renderer, not a local Chromium
 approximation) and the only path that works in every environment.
@@ -146,7 +146,7 @@ python -m harness.check /tmp/your_work_dir --only tts_length
 python -m harness.check /tmp/your_work_dir --json
 ```
 
-`scripts/package_zip.py` calls this automatically — failing the check refuses to zip. In mcp mode, run the same harness check, then push to the cloud with the MCP tools `write_file` + `compile`.
+`scripts/package_zip.py` calls this automatically — failing the check refuses to zip. In mcp mode, run the same harness check, then author the shots with `upsert_shot` + `write_file` and render with `render_shot` / `compile`.
 
 ## Full backend syntax surface
 

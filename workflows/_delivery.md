@@ -6,44 +6,51 @@ Check the tool list for the autolecture MCP tools — present = **mcp** (path A)
 
 | Mode | Delivery path | Note |
 |---|---|---|
-| **mcp** (MCP tools present) | **Path A · MCP direct-drive** (preferred) | Claude uses MCP tools to build the project + write files + compile + get the mp4 in the cloud, end-to-end; on failure can `fetch_frame` to inspect frames and debug |
+| **mcp** (MCP tools present) | **Path A · MCP direct-drive** (preferred) | Claude authors the JSON shots via state ops + writes the per-shot scene code + renders + compiles in the cloud, end-to-end; on failure `render_shot` returns the still to inspect |
 | **zip** (no MCP, incl. web client) | **Path B · zip** | Claude produces a project zip; the user drags it to autolecture.ai to upload |
 
 ---
 
 ## Path A · MCP direct-drive (preferred — when the autolecture MCP tools are in the tool list)
 
-Claude uses autolecture's MCP tools to do it all in the cloud, end-to-end.
+Claude authors the project as JSON shots via the state-op tools (see **AUTHORING
+MODEL — v0.13** in SKILL.md) — all in the cloud, end-to-end.
 
-> ⚠️ **Iron rule: incremental persistence — land every finished view in the cloud immediately, NEVER pile it up for one final write.**
-> A long project has a dozen-plus scenes; if you hold them all in your head / locally and only `write_file` everything at the very end,
-> then the moment you **hit the tool-use limit** mid-flow, disconnect, or a call fails, **it's all wasted**. Write incrementally and: the views
-> already written are already in the cloud project, valid, compilable; to continue you just `read_file("main.tex")` to see where you got to and keep going.
+> ⚠️ **Iron rule: incremental persistence — land every finished shot in the cloud immediately, NEVER pile it up for one final write.**
+> A long project has a dozen-plus shots; if you hold them all in your head and only persist at the very end,
+> then the moment you **hit the tool-use limit** mid-flow, disconnect, or a call fails, **it's all wasted**. Each `upsert_shot`
+> is already in the cloud project, valid; to continue you first call `get_state` and see where you got to.
 
-1. **Create project + write skeleton** — `create_project` (or `list_templates` to pick a template) to get a project id.
-   Immediately `write_file("main.tex", …)` a **skeleton with only the toplevel macros + an empty body**, keeping `\end{videotex}` at the end as an anchor:
-   ```
-   \title{…}\aspect{…}\style{…}\voice{…}
-   \begin{videotex}
-   \end{videotex}
-   ```
-   At this point the cloud already holds a compilable (empty) project — afterwards every view is inserted before this anchor.
+1. **Create + bootstrap the project** — `create_project` to get a project id, then
+   `set_project(title, aspect_ratio, style)` (one call) to set the film's
+   top-level fields. The cloud now holds a valid (empty-shots) project.
 
-2. **Write view by view, incrementally (core loop — repeat per view)**: each time you finish **one** view, on the spot:
-   a. `write_file("scenes/scene_NN.{html,tsx,py}", source)` — write this view's scene file.
-   b. `edit_file("main.tex", old_string="\end{videotex}", new_string="<this view's \begin{view}…\end{view}>\n\end{videotex}")` — **append this view before the anchor**. `\end{videotex}` is unique and reusable; after inserting it's still there, the next view keeps inserting.
-   c. If this view uses assets, `add_asset` to upload them.
-   d. (Recommended) `compile` (render just this block) + `get_status` — **render it on the spot, catch errors on the spot**, rather than piling them up to blow up together at the end.
-   → Each view lands on your platform the moment it's written. **Any interruption mid-flow loses nothing already written.**
+2. **Author shot by shot, incrementally (core loop — repeat per shot)**: each time you finish **one** shot, on the spot:
+   a. If this shot uses uploaded assets, `add_asset` first.
+   b. `upsert_shot(id, duration, description, engine, src, say_text)` — insert the
+      shot (a base layer of `engine` + a code file `src`, plus the `say_text`
+      narration). Then `write_file(src, …)` the scene code
+      (`scenes/<id>.{py,tsx,html,svg}`). (For `engine='image'` omit `src` — the
+      engine AI-generates from `description`.)
+   c. (Recommended) `render_shot(id, storyboard=true)` — render just this shot's
+      still on the spot, **catch errors on the spot** rather than piling up.
+   → Each shot lands the moment it's authored. **Any interruption mid-flow loses nothing already written.**
 
-3. **All views written → compile the whole video** — `compile` (whole project) → `get_status` poll to completion → `get_output` to get the mp4 + Studio URL. (If every block was rendered in step 2d, this step basically all hits cache, fast.)
+3. **All shots authored → finalize + compile** — `set_project(phase='final')` →
+   `compile` (whole project) → `get_status` poll to completion → `get_output` for
+   the mp4 + Studio URL. (Shots already rendered in 2c hit cache, fast.)
 
-4. **On failure, inspect frames and debug yourself** (the core value of MCP mode over zip) — `get_status` gives structured errors (which block / category / offending source) → `edit_file` to fix that file → `fetch_frame` to pull the PNG that view rendered and confirm → re-render only the changed block (`compile` with only-block, the rest hits cache). `fetch_waveform` to inspect the audio shape. **At most 3 self-fixes per block**; if that fails, escalate to the user with evidence (offending fragment + frame + Studio URL).
+4. **On failure, inspect and fix yourself** — `get_status` gives structured errors
+   (which shot / category / offending source); `get_state` shows the current shots.
+   Fix the scene code with `write_file(src, …)`, then `render_shot(id,
+   storyboard=true)` — the returned still confirms the fix; re-`compile` (the rest
+   hits cache). **At most 3 self-fixes per shot**; if that fails, escalate to the
+   user with evidence (offending fragment + the shot's still + Studio URL).
 
 5. **Deliver** — return the Studio URL + a one-line "how to use"; the user can keep editing in Studio / click ▶ Recompile.
 
 > Tool-name prefixes vary by client (e.g. `autolecture:compile` / `mcp__autolecture__compile`). Parameter schemas follow the tool definitions you actually see — if unsure, first `list_projects` / `whoami` to probe.
-> **Continuation**: after a conversation is interrupted and reconnected, first `read_file("main.tex")` to see which views are already written, continue inserting before the `\end{videotex}` anchor, don't rewrite from scratch.
+> **Continuation**: after a conversation is interrupted and reconnected, first `get_state` to see which shots already exist, then keep `upsert_shot`-ing the missing ones; don't rebuild from scratch.
 
 ---
 

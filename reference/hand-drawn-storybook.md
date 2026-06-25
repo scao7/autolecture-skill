@@ -269,7 +269,7 @@ then the sun keeps `spin`-ning. Conforms to "entrance ≤1.5s, then only looping
 
 ## Production checklist (validated over 17 views)
 
-1. **Do 1 sample view first** → compile → `fetch_frame` to pull a frame → sign off "good" → only then mass-produce the rest
+1. **Do 1 sample shot first** → `render_shot(id, storyboard=true)` → read `get_state()` → `shots[].render.still` → sign off "good" → only then mass-produce the rest
    (the most valuable step; see the sample discipline in the main workflow).
 2. **One naming prefix** for the whole video (e.g. `hd_01..hd_17`), so re-versioning is an easy `delete_file` to archive the old ones.
 3. Give each scene a different `seed` so the jitter isn't identical.

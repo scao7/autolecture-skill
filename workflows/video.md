@@ -16,7 +16,7 @@ Most likely the user wants to **use the original video**, so **no TTS** — take
 > ([`templates/scene_screencast_pip.tsx.tpl`](../templates/scene_screencast_pip.tsx.tpl):
 > SCREEN_FILE/WEBCAM_FILE point at the two files, PIP_SCALE/PIP_CORNER/PIP_MARGIN/
 > MORPH_START/MORPH_END all tunable, includes the fullscreen-avatar→corner-shrink morph); don't put that composite preview file
-> into the finished video. If you're unsure of the layout, `fetch_asset_frame` to look at the two tracks first, then set parameters.
+> into the finished video. If you're unsure of the layout, extract the two tracks' frames LOCALLY (ffmpeg) and look first, then set parameters.
 
 > 📝 **Captioning = writing an asset-level transcript**: `transcribe` to get word-level timestamps → `write_file` the corrected full transcript
 > to `{media}.transcript.txt` → every view that references that asset auto-derives captions

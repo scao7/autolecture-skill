@@ -224,41 +224,39 @@ All workflows converge on the same delivery step:
     you may rough-cut to a working range as the asset, but **the fine cut still lives in
     the .tex**.)
 12. **resume = the cloud is the single source of truth**: the **first action** of any
-    continue / resume task **must be `get_snapshot`**, taking the cloud's actual files +
-    the active root source's view order as truth. A summary / journal / remembered file list is only
-    a **lead**; `read_file` each one to verify the real thing; **don't trust "it's all
-    written"**. Reason: a compaction summary will name wrong files (abandoned drafts,
-    missing views, naming clashes), and taking over on it would edit the wrong set. See
-    [`reference/resume-checklist.md`](reference/resume-checklist.md).
-13. **Sample first (mandatory)**: for any **multi-view task, do ONE sample end-to-end
-    and get sign-off** (build project → write 1 view → compile → `fetch_frame` to check →
-    user says "looks good") **before batching** the rest. Reason: a sample rework costs
-    1 view, post-batch rework costs N views; the most valuable step.
+    continue / resume task **must be `get_state`** (mcp mode), taking the cloud's
+    ProjectState shots + their scene code as truth. A summary / journal / remembered file
+    list is only a **lead**; `read_file` each scene file to verify the real thing; **don't
+    trust "it's all written"**. Reason: a compaction summary will name wrong files
+    (abandoned drafts, missing shots, naming clashes), and taking over on it would edit the
+    wrong set. See [`reference/resume-checklist.md`](reference/resume-checklist.md).
+13. **Sample first (mandatory)**: for any **multi-shot task, do ONE sample end-to-end
+    and get sign-off** (create project → `set_project` → `upsert_shot` 1 + `write_file` its
+    scene code → `render_shot(id, storyboard=true)` → user says "looks good") **before
+    batching** the rest. Reason: a sample rework costs 1 shot, post-batch rework costs N.
 14. **One naming prefix per project + clean up orphans on replace**: a project uses one
-    scene naming prefix (e.g. `hd_*`); **when replacing an old version, `delete_file` /
-    `move_file` to archive it** so no mixed-version orphan files linger. The active root's view
-    order (or `MANIFEST.md`) is the **single list of the current official views**. Reason:
+    scene naming prefix (e.g. `s_*`); **when replacing a shot, `remove_shot` the old one**
+    (and `upsert_shot` the new) so no mixed-version orphans linger. The ProjectState shot
+    list (`get_state`) is the **single list of the current official shots**. Reason:
     multiple coexisting prefixes = on resume you'd have to guess "which set is official".
-15. **Active-root skeleton first**: build a **compilable skeleton of ALL views** (each
-    view first gets a placeholder `\say` + `\htmlFile`) and commit it immediately, **then
-    fill view by view**; keep it compilable / ordered / recoverable throughout. **Put
-    `\say` and its visual in the same view** (don't leave narration only in a draft, or
-    resume has to re-cut from the original text).
-16. **`\manimFile` must carry `[retime=true]`; `\say` ≤400 chars, subtitles off by
-    default** (need `burn=on` to burn). Reason (retime): since 2026-05-22 duration is no
-    longer auto-scaled; without it the animation won't scale to the audio and the end
-    frame freezes. (This echoes ban 1, especially easy to miss on resume / batch.)
-17. **No "write everything then compile" — compile each view as you write it**:
-    `compile` is incremental (unchanged blocks all hit cache, only the new block renders),
-    so write 1 view → `commit_files` when the view touches both the root tex and scene source
-    (or `write_file` for a standalone single-file change) → `compile(wait_seconds=60)` on the spot → check
-    `block_errors` → fix → next view. **Cost is identical to one final compile, but errors
-    arrive one at a time.** Batch-writing then compiling = N blocks' errors dumped into the
+15. **Bootstrap then author shot by shot**: `set_project(title, aspect_ratio, style)`
+    once, then `upsert_shot` each shot (with its `say_text` narration) + `write_file` its
+    scene code; keep it valid / ordered / recoverable throughout. **Put the narration
+    (`say_text`) on the same `upsert_shot` as its visual** (don't leave it floating in a
+    draft, or resume has to re-cut from the original text).
+16. **Narration (`say_text`) ≤400 chars; captions off by default** (set `say_burn=true`
+    to burn). (zip mode keeps the VideoTeX spellings: `\manimFile[retime=true]`,
+    `\say[burn=on]`.) This echoes ban 1, especially easy to miss on resume / batch.
+17. **No "author everything then compile" — render each shot as you author it**:
+    rendering is per-shot and cached, so `upsert_shot` → `write_file` its code →
+    `render_shot(id, storyboard=true)` on the spot → check the returned still / status →
+    fix → next shot. **Cost is identical to one final compile, but errors
+    arrive one at a time.** Batch-authoring then compiling = N shots' errors dumped into the
     chat at once + context already spent on debugging ("conversation too long" kills the
     session outright, and everything written-but-not-compiled is unverified).
-    **Context hygiene** alongside: once scene code is persisted, don't restate it in
-    the body; use `commit_files` for root+scene edits and `edit_file` for single-file edits; use `fetch_frame`
-    only to pull 1-2 frames on a compile error or a key-visual check — images eat context.
+    **Context hygiene** alongside: once a shot's scene code is persisted (via `write_file`),
+    don't restate it in the body; read a shot's still from `get_state()` →
+    `shots[].render.still` only on a render error or a key-visual check — images eat context.
 
 ---
 
@@ -346,8 +344,8 @@ Working directory and output structure (shared by all workflows):
 - [`reference/marketplace.md`](reference/marketplace.md) — marketplace path (entry ② "go to marketplace"): list genres → pick a template → pull the authoring card → clone the starting project → take over per the card (mcp only; incl. publishing your own template)
 - [`reference/layout-spec.md`](reference/layout-spec.md) — the layout limits the harness checks (canvas / safe zone / char caps); read this to know the boundaries
 - [`reference/hand-drawn-storybook.md`](reference/hand-drawn-storybook.md) — hand-drawn storybook style (inline-SVG stroke-draw animation + feTurbulence pen jitter + bob/sway micro-motion + brand colors); reusable across a whole fable / story-form explainer
-- [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — the counter-intuitive points of the compile / single-view preview / `fetch_frame` trio (cost scale, temporary single-view active-root override, content_hash as scene_id, base64-to-disk decode, change resolution = full re-render)
-- [`reference/resume-checklist.md`](reference/resume-checklist.md) — resume-task checklist: `get_snapshot` to align with cloud truth, `read_file` each to verify, clean up orphans, skeleton first
+- [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — per-shot `render_shot` preview + reading the still from `get_state`, full-compile cost, cache-invalidates-with-canvas
+- [`reference/resume-checklist.md`](reference/resume-checklist.md) — resume-task checklist: `get_state` to align with cloud truth, `read_file` each scene file to verify, clean up orphans
 
 ### templates/
 - [`templates/main.tex.tpl`](templates/main.tex.tpl) · [`templates/README.md.tpl`](templates/README.md.tpl)

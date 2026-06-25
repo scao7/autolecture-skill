@@ -64,8 +64,8 @@ structure, voiceover style all per the card):
 
 - Replace placeholder scenes / assets with the user's real content (HARD BAN 2: design each scene per its content,
   no filling different text into the same template).
-- **For each view replaced/added, `compile` on the spot + check `block_errors` + fix** (HARD BAN 17,
-  incremental compile); for key visuals, pull 1–2 frames with `fetch_frame` to verify.
+- **For each shot replaced/added, `render_shot(id, storyboard=true)` on the spot + check + fix** (HARD BAN 17,
+  per-shot render); for key visuals, read `get_state()` → `shots[].render.still` to verify.
 - For multi-view tasks, do 1 sample and get sign-off before batching (HARD BAN 13).
 - Delivery goes through [`../workflows/_delivery.md`](../workflows/_delivery.md).
 
