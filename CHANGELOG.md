@@ -7,6 +7,50 @@ agent 连上 `mcp.autolecture.ai/mcp` 后调 `server_info`，把返回的
 语法真相以 MCP 的 `get_dsl_spec` 为准；bundled `harness/spec/dsl.json`
 只是 zip/离线模式的 fallback。
 
+## 0.13.0 — 2026-06-25 — JSON-canonical authoring (state ops)
+
+- **BREAKING: the project is now authored as a list of JSON shots via MCP state
+  ops, not VideoTeX text.** The server fully migrated the MCP surface to
+  JSON-canonical (`SKILL_VERSION_CURRENT` 0.13.0). The legacy VideoTeX tools are
+  RETIRED and no longer in the tool list: `commit_files`, `edit_file`, the `.tex`
+  `write_file`/`read_file`, `list_directory`/`search_files`/`move_file`/`delete_file`,
+  `generate_full_from_storyboard`, `render_scene`, and the blocks-debug set
+  (`fetch_frame`/`fetch_waveform`/`fetch_asset_frame`/`list_scene_versions`/
+  `pick_scene_version`/`get_captions`/`get_snapshot`), plus `list_templates`.
+- **New authoring surface:** `get_state` · `set_project` · `upsert_shot` ·
+  `update_shot` · `remove_shot` · `reorder_shots` · per-shot `write_file` (scene
+  CODE only, refuses `.tex`) · `render_shot` (per-shot still/clip). `compile` /
+  `get_status` / `get_output` / `add_asset` / `transcribe` / `get_dsl_spec` stay.
+- SKILL.md gains an authoritative **AUTHORING MODEL — v0.13** section that governs
+  the file + the `workflows/` playbooks: any legacy "write `storyboard.tex` /
+  `commit_files` / `fetch_frame`" instruction translates to the equivalent state
+  op. Hand-written Manim/HTML/Remotion scene code + the audio-driven spine are
+  unchanged; only the project-structure surface moved from `.tex` to JSON shots.
+- Follow-up: the `workflows/` and `reference/` playbooks still carry VideoTeX
+  phrasing in places — governed by the AUTHORING MODEL section for now; a full
+  per-file rewrite is the next pass.
+
+## 0.12.1 — 2026-06-22
+
+- **MCP authoring now defaults to atomic `commit_files` for a complete view.**
+  When a view changes both the active root tex and an external scene file, agents
+  should land them in one SourceRevision via `commit_files`, then compile that
+  block. `write_file` / `edit_file` remain for standalone single-file edits.
+  This prevents resume/compile from seeing a root that references missing source,
+  or a source file that has not been connected to the root yet.
+
+## 0.12.0 — 2026-06-21
+
+- **Cross-shot continuity is now named-anchor based: `[id=]` / `[ref=]`.**
+  Give a shot a stable anchor (`\begin{view}[id=bars]`) and have later shots
+  cite it (`[ref=bars]`); the compiler feeds the anchor's code into each
+  citer's codegen so the sequence reuses the same composition (variable names,
+  object count, colors, coordinates) and only changes what the description
+  changes. This is what makes a multi-shot scene look coherent instead of like
+  unrelated clips, and it now propagates into the FULL render (not just the
+  storyboard still). The retired positional forms `ref=prev` / `ref=#N` are
+  errors. Emit `[id=]`/`[ref=]` whenever consecutive shots share a scene.
+
 ## 0.11.0 — 2026-06-17
 
 - **English-first.** Translated the whole skill to English for the US Claude Code

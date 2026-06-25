@@ -1,6 +1,6 @@
 ---
 name: autolecture-skill
-version: 0.11.0
+version: 0.13.0
 description: Turn the user's material end-to-end into a project that compiles to a finished video in AutoLecture (https://autolecture.ai). At the entry, first set the runtime mode, then ask **freestyle or find a dedicated template in the marketplace** (each genre in the marketplace is a server-delivered authoring card any MCP-connected agent can use); freestyle then routes by primary input type to the matching workflow: plain text/script→generate an explainer; audio/podcast→transcribe + match visuals; PDF paper→explain (extract figures) or showcase the original (react-pdf real pages + zoom + located highlight, à la pdf2video); live-action video→overlay transparent effects (over=) or screencast+avatar Tella-style picture-in-picture (recording yields screen/camera raw tracks, PiP arranged by template, tunable later); reference video→visual replication (extract frames, read the motion, write scenes to match). All visuals are hand-written \manimFile/\htmlFile/\remotionFile source (no LLM prompts); AI is used only for \image[engine=gemini]{} image generation. On start, check whether the autolecture MCP tools are present (the mcp.autolecture.ai/mcp connector): if so, mcp mode builds the project + compiles + inspects frames directly in the cloud; if not, ask the user to use MCP or just produce a zip to upload (claude.ai web goes zip). Two delivery paths: with MCP tools, drive cloud compile directly via the connector; otherwise package a zip for the user to upload. Goal: user gives material → run → out.mp4 + Studio URL.
 ---
 
@@ -10,6 +10,45 @@ Turn the user's material into a project package that compiles to a finished vide
 the moment they hit ▶ Recompile in AutoLecture. This SKILL.md is the **routing
 entry** — first decide which kind of video the user wants, then open the matching
 [`workflows/`](workflows/) playbook and execute it.
+
+## ⚠️ AUTHORING MODEL — v0.13 (JSON-canonical state ops) · governs everything below
+
+**As of server `SKILL_VERSION_CURRENT` 0.13, an AutoLecture project is authored as
+a list of SHOTS in canonical JSON `ProjectState` via structured MCP state-op
+tools — NOT by writing VideoTeX (`storyboard.tex` / `\begin{view}` / `\manimFile`)
+text.** This section is authoritative: wherever the rest of this file or a
+`workflows/` playbook says "write `storyboard.tex`", "`commit_files`", "`write_file`
+the root `.tex`", "`fetch_frame`", "`generate_full_from_storyboard`", or
+"`render_scene`" — **those tools are RETIRED; translate the intent to the state
+ops below.** (Run `get_dsl_spec` for the live engine-source contracts.)
+
+**Current MCP tools (call `server_info` once to confirm `skill_version_current`):**
+- Project: `create_project`, `get_project`, `list_projects`, `delete_project`
+- **Author the storyboard (state ops):** `get_state` (read the shots), `set_project`
+  (title / aspect_ratio / style / phase), `upsert_shot` (insert/replace a shot by
+  id: `duration`, `description`, base-layer `engine` + optional `src` code file,
+  `say_text` narration), `update_shot` (patch one shot), `remove_shot`,
+  `reorder_shots`
+- **Per-shot CODE source:** `write_file` (a shot's `scenes/<id>.py|.tsx|.html|.svg`
+  — **refuses `.tex`**), `read_file`, `list_files`, `add_asset`, `transcribe`
+- **Render / output:** `render_shot` (render ONE shot — `storyboard=true` for the
+  cheap still), `compile` (full video) + `get_status` / `get_output`
+
+**The authoring loop (replaces "write storyboard.tex → compile → fetch_frame"):**
+1. `create_project` → `set_project(title, aspect_ratio, style)`.
+2. For each shot, in order: `upsert_shot(id, duration, description, engine, src,
+   say_text)` — then `write_file` the scene code at `src` (hand-written
+   Manim/HTML/Remotion/SVG source, same as before; `engine='image'` AI-generates,
+   no src). `description` is the director's shot note (画面/景别/主体运动/标注).
+3. Preview a shot with `render_shot(shot_id, storyboard=true)`; read back with
+   `get_state`. Iterate per shot (this is the "compile each view as you write it"
+   discipline, now per-shot).
+4. When the storyboard is approved → `set_project(phase='final')` →  `compile`
+   the full video → `get_status` / `get_output` → hand over the Studio URL.
+
+The "everything is audio-driven" spine, the hand-written-code rule, the genre
+templates, and the zip fallback all still apply — only the *project-structure*
+surface changed from VideoTeX text to JSON shots.
 
 ## Core: everything is audio-driven
 
@@ -41,14 +80,17 @@ audio / text / PDF / video file.
 
 **The first thing the skill does on start is check whether you currently have the
 autolecture MCP tools** — once the `mcp.autolecture.ai/mcp` connector is attached,
-the tool list shows `create_project` / `write_file` / `edit_file` / `add_asset` /
-`compile` / `get_status` / `fetch_frame` (the prefix depends on the client, e.g.
-`autolecture:compile`). This is a fact Claude can see directly — no script needed.
+the tool list shows `create_project` / `set_project` / `upsert_shot` / `write_file` /
+`render_shot` / `add_asset` / `compile` / `get_status` (the prefix depends on the
+client, e.g. `autolecture:compile`). This is a fact Claude can see directly — no
+script needed. (See **AUTHORING MODEL — v0.13** above for the full state-op set;
+the old `commit_files`/`edit_file`/`fetch_frame`/`.tex` tools were retired.)
 
 - **Have the MCP tools** → **mcp mode** (preferred). Claude uses these tools to
-  build the project in the cloud, write `main.tex` + scene files, upload assets,
-  compile, and pull rendered frames to inspect — end to end, nothing dropped to a
-  local zip, and when a compile fails it can `fetch_frame` to debug.
+  build the project in the cloud: author the shots via state ops (`set_project` +
+  `upsert_shot` per shot) + `write_file` the per-shot scene code, upload assets,
+  `render_shot` to preview each shot, `compile` the final, and read back with
+  `get_state` — end to end, nothing dropped to a local zip.
   **On connect, call `server_info` once for version reconciliation**: ① if the
   returned `skill_version_current` is newer than this SKILL.md's header `version`,
   tell the user "the skill has a new version, run `npx skills add
@@ -183,7 +225,7 @@ All workflows converge on the same delivery step:
     the .tex**.)
 12. **resume = the cloud is the single source of truth**: the **first action** of any
     continue / resume task **must be `get_snapshot`**, taking the cloud's actual files +
-    `main.tex`'s view order as truth. A summary / journal / remembered file list is only
+    the active root source's view order as truth. A summary / journal / remembered file list is only
     a **lead**; `read_file` each one to verify the real thing; **don't trust "it's all
     written"**. Reason: a compaction summary will name wrong files (abandoned drafts,
     missing views, naming clashes), and taking over on it would edit the wrong set. See
@@ -194,10 +236,10 @@ All workflows converge on the same delivery step:
     1 view, post-batch rework costs N views; the most valuable step.
 14. **One naming prefix per project + clean up orphans on replace**: a project uses one
     scene naming prefix (e.g. `hd_*`); **when replacing an old version, `delete_file` /
-    `move_file` to archive it** so no mixed-version orphan files linger. `main.tex`'s view
+    `move_file` to archive it** so no mixed-version orphan files linger. The active root's view
     order (or `MANIFEST.md`) is the **single list of the current official views**. Reason:
     multiple coexisting prefixes = on resume you'd have to guess "which set is official".
-15. **`main.tex` skeleton first**: build a **compilable skeleton of ALL views** (each
+15. **Active-root skeleton first**: build a **compilable skeleton of ALL views** (each
     view first gets a placeholder `\say` + `\htmlFile`) and commit it immediately, **then
     fill view by view**; keep it compilable / ordered / recoverable throughout. **Put
     `\say` and its visual in the same view** (don't leave narration only in a draft, or
@@ -208,13 +250,14 @@ All workflows converge on the same delivery step:
     frame freezes. (This echoes ban 1, especially easy to miss on resume / batch.)
 17. **No "write everything then compile" — compile each view as you write it**:
     `compile` is incremental (unchanged blocks all hit cache, only the new block renders),
-    so write 1 view → `write_file` → `compile(wait_seconds=60)` on the spot → check
+    so write 1 view → `commit_files` when the view touches both the root tex and scene source
+    (or `write_file` for a standalone single-file change) → `compile(wait_seconds=60)` on the spot → check
     `block_errors` → fix → next view. **Cost is identical to one final compile, but errors
     arrive one at a time.** Batch-writing then compiling = N blocks' errors dumped into the
     chat at once + context already spent on debugging ("conversation too long" kills the
     session outright, and everything written-but-not-compiled is unverified).
-    **Context hygiene** alongside: once scene code is in `write_file`, don't restate it in
-    the body; edit files with `edit_file`, don't rewrite whole files; use `fetch_frame`
+    **Context hygiene** alongside: once scene code is persisted, don't restate it in
+    the body; use `commit_files` for root+scene edits and `edit_file` for single-file edits; use `fetch_frame`
     only to pull 1-2 frames on a compile error or a key-visual check — images eat context.
 
 ---
@@ -226,7 +269,7 @@ MCP tools:
 
 | Mode | Trigger | What it does |
 |---|---|---|
-| **mcp** (preferred) | the current tool list has the autolecture MCP tools (the `mcp.autolecture.ai/mcp` connector is attached) | Claude uses the MCP tools directly: cloud `create_project`, `write_file`/`edit_file` for tex+scene, `add_asset` to upload, `compile`+`get_status`, `fetch_frame`/`fetch_waveform` to inspect renders, `list_scene_versions`/`pick_scene_version` to roll back to a better past render, `fetch_asset_frame` to view raw-asset frames (replication reference / arrangement checks), `get_captions` for the aligned per-line subtitles (edit `{src}.transcript.txt` for footage, `\caption{}` for overlay scenes — both apply instantly without re-render) — end to end, and when a compile fails it inspects frames to debug |
+| **mcp** (preferred) | the current tool list has the autolecture MCP tools (the `mcp.autolecture.ai/mcp` connector is attached) | Claude authors via the JSON-canonical state ops (see **AUTHORING MODEL — v0.13** above): `create_project` → `set_project` → `upsert_shot` per shot + `write_file` the scene code, `add_asset` to upload, `render_shot(storyboard=true)` to preview a shot, `get_state` to read back, `compile`+`get_status`/`get_output` for the final — end to end in the cloud |
 | **zip** (default fallback) | no MCP, and the user doesn't want to connect (incl. **claude.ai web**) | **produce a zip only** for the user to drag onto [autolecture.ai](https://autolecture.ai); Claude can't query the user's state, so use `AskUserQuestion` or conservative defaults |
 
 **Decide (step 0 of every workflow)**: is there an autolecture MCP tool in the list — yes
@@ -303,7 +346,7 @@ Working directory and output structure (shared by all workflows):
 - [`reference/marketplace.md`](reference/marketplace.md) — marketplace path (entry ② "go to marketplace"): list genres → pick a template → pull the authoring card → clone the starting project → take over per the card (mcp only; incl. publishing your own template)
 - [`reference/layout-spec.md`](reference/layout-spec.md) — the layout limits the harness checks (canvas / safe zone / char caps); read this to know the boundaries
 - [`reference/hand-drawn-storybook.md`](reference/hand-drawn-storybook.md) — hand-drawn storybook style (inline-SVG stroke-draw animation + feTurbulence pen jitter + bob/sway micro-motion + brand colors); reusable across a whole fable / story-form explainer
-- [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — the counter-intuitive points of the compile / single-view preview / `fetch_frame` trio (cost scale, temporary single-view main.tex override, content_hash as scene_id, base64-to-disk decode, change resolution = full re-render)
+- [`reference/compile-and-preview.md`](reference/compile-and-preview.md) — the counter-intuitive points of the compile / single-view preview / `fetch_frame` trio (cost scale, temporary single-view active-root override, content_hash as scene_id, base64-to-disk decode, change resolution = full re-render)
 - [`reference/resume-checklist.md`](reference/resume-checklist.md) — resume-task checklist: `get_snapshot` to align with cloud truth, `read_file` each to verify, clean up orphans, skeleton first
 
 ### templates/
