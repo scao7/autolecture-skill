@@ -271,7 +271,7 @@ then the sun keeps `spin`-ning. Conforms to "entrance ≤1.5s, then only looping
 
 1. **Do 1 sample shot first** → `render_shot(id, storyboard=true)` → read `get_state()` → `shots[].render.still` → sign off "good" → only then mass-produce the rest
    (the most valuable step; see the sample discipline in the main workflow).
-2. **One naming prefix** for the whole video (e.g. `hd_01..hd_17`), so re-versioning is an easy `delete_file` to archive the old ones.
+2. **One naming prefix** for the whole video (e.g. `hd_01..hd_17`), so re-versioning is an easy `write_file` overwrite of the same `src` (or `remove_shot` to drop a view) — no orphan drafts.
 3. Give each scene a different `seed` so the jitter isn't identical.
 4. Don't drift from the three brand colors: cream / navy / tan.
 5. Run every scene through the "entrance budget self-check" above.

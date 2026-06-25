@@ -80,7 +80,7 @@ Skeleton example (placeholder narration + placeholder filenames, all views built
 \end{videotex}
 ```
 
-> Naming discipline: **one project uses one prefix only** (e.g. all `scene_NN_`); when replacing an old version `delete_file`/archive it as you go, don't let two naming schemes coexist — on resume, "which is the official one" rests entirely on the view order in the active root source.
+> Naming discipline: **one project uses one prefix only** (e.g. all `scene_NN_`); replace an old version by overwriting the same `src` via `write_file` (or `remove_shot` to drop the view), don't let two naming schemes coexist — on resume, "which is the official one" rests entirely on the order of `get_state().shots[]` (the shot list is the manifest; there's no active-root `.tex`).
 
 ### 5 · Assign visuals to each segment by "the voiceover's point and meaning" + pick an engine
 Read [`../reference/engine-routing.md`](../reference/engine-routing.md). **The visual must hook this beat's voiceover point and meaning**, not generic illustration: mentions a number → large-type reversal; mentions a process → card cross-fade; mentions collapse → point cloud contracting. Quick reference: large type / numbers / typewriter → Remotion; titles / cards / tables / flows → HTML; 3D / formulas / geometry → Manim; faces / scenery → `\image[engine=gemini]`. **Default to HTML** (fastest, most stable).

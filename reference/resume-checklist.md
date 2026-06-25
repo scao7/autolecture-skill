@@ -30,7 +30,8 @@ filenames `scene_*`" — but the cloud reality may be: this session only wrote 1
      half-done animation, out of sync with the narration)
    - Be alert to gaps in numbering: `hd_01 hd_02 hd_04 …` missing `hd_03` — is it a skipped write, or a rename? Find out.
 4. **Only continue on the confirmed canonical set after verifying each file**. Files in the snapshot not referenced
-   by the active root = orphans; treat them as discarded drafts by default and **don't continue writing on top of them.**
+   by any shot in `get_state().shots[]` = orphans (inert — the shot list, not the file tree, decides what renders);
+   treat them as discarded drafts by default and **don't continue writing on top of them.**
 
 ### Counter-example (the cost of copying the summary)
 
@@ -45,54 +46,40 @@ filenames `scene_*`" — but the cloud reality may be: this session only wrote 1
 
 ---
 
-## 2. Project hygiene: one naming scheme + archive orphans + MANIFEST
+## 2. Project hygiene: one naming scheme + the shot list is the manifest
 
 ### 1. One naming prefix per project
 
 A single project uses **one** prefix only (either all `hd_*` or all `scene_*`, never both side by side).
 Two prefixes coexisting = "which set is canonical" becomes an archaeology problem.
 
-### 2. Archive the old version when you replace it — don't leave orphans
+### 2. Replace a version in place — don't fork the source path
 
-When replacing an old version with a new one, clear the old one **on the spot**, don't defer:
+There is no `delete_file` / `move_file` in the JSON-canonical model, and you don't need them:
 
-```
-# right after writing the new version, archive the file it supersedes
-delete_file  scene_03.html          # just delete the discarded draft
-move_file    scene_03.html  _archive/scene_03.html   # or archive to keep a backup
-```
+- **Revising a scene's code**: `write_file` the **same `src` path** — it overwrites in place, so no orphan is created.
+- **Dropping a view entirely**: `remove_shot(id)` — the shot leaves `get_state().shots[]`, so it stops rendering
+  immediately. Its old scene file may linger in the file tree but is now **inert** (no shot references it).
 
-Orphan files left uncleaned across rounds → pile up → next resume you have to re-judge "which set is canonical" all over again.
+So an unreferenced file can't corrupt the render — only `shots[]` decides what renders. Still, keep one prefix and
+overwrite-in-place so a later `read_file` browse isn't littered with dead drafts.
 
-### 3. Gaps in numbering amplify ambiguity
+### 3. Gaps in numbering don't break anything — `shots[]` is the order
 
-A gap in filenames (e.g. `hd_01 hd_02 hd_04`, missing `03`) makes it impossible to tell a **skipped write**
-from a **rename**. Contiguous numbering + immediate archiving kills the ambiguity at the source.
+A gap in filenames (e.g. `hd_01 hd_02 hd_04`, missing `03`) is cosmetic: the canonical sequence is the **order of
+`get_state().shots[]`**, not the filenames. Contiguous numbering is just for human readability; it's the shot list,
+never the file names, that you trust.
 
 ---
 
-## 3. MANIFEST convention: the single list of current canonical views
+## 3. The shot list IS the manifest
 
-Every project needs **one** authoritative "current canonical views" list. Two approaches — pick either, but be explicit:
+You don't maintain a separate "current canonical views" list — `get_state().shots[]` **is** that list, authoritative
+by construction. Each shot's `layers[].src` points at its scene code; the array order is the play order. There is no
+active-root `.tex` and no `MANIFEST.md` to drift out of sync — the render is driven by the same `shots[]` you read.
 
-- **Preferred: rely on the view order in the active root source** — the view sequence inside `\begin{videotex}` IS
-  the list. This keeps the list and the render **same-source**, so they can't drift. On resume, just read it.
-- **Backup: a `MANIFEST.md` at the project root** — when view references and file intent aren't self-explanatory enough,
-  use a table to pin down "view → file → status":
-
-  ```markdown
-  # MANIFEST — current canonical views (authoritative; all other files are orphans)
-
-  | # | view | file | status |
-  |---|------|------|--------|
-  | 01 | opening | hd_01.html | finished |
-  | 02 | character entrance | hd_02.html | finished |
-  | 03 | conflict | hd_03.html | TODO (missing) |
-  | … | … | … | … |
-  ```
-
-> Rule: **when the active root source's view order conflicts with `MANIFEST.md`, the active root wins**
-> (it drives the actual compile). MANIFEST is just a human-facing guide, not a second source of truth.
+On resume, just `get_state()`: the shots in order, with each one's `render.status`, are the whole truth. Any file in the
+snapshot not pointed at by some shot's `src` is an orphan draft.
 
 ---
 
@@ -101,5 +88,5 @@ Every project needs **one** authoritative "current canonical views" list. Two ap
 1. First action on resume = `get_state`, not writing code.
 2. Truth = the cloud ProjectState shots + their scene code; summaries / memory = leads, `read_file` each scene file to verify.
 3. Don't trust "everything's already written"; gaps in numbering, mixed drafts, orphan files all need personal verification.
-4. One prefix per project; when replacing old versions, `delete_file` / `move_file` on the spot.
-5. Canonical view list = active-root view order (preferred) or `MANIFEST.md` (backup; active root wins).
+4. One prefix per project; replace a version by overwriting the same `src` via `write_file`, or drop a view via `remove_shot`.
+5. Canonical view list = the order of `get_state().shots[]` — it is the manifest; there is no separate root source or MANIFEST file.
